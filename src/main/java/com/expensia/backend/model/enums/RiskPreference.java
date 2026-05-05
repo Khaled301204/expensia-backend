@@ -1,4 +1,7 @@
 package com.expensia.backend.model.enums;
 
-public class RiskPreference {
+public enum RiskPreference {
+    LOW,
+    MEDIUM,
+    HIGH
 }
