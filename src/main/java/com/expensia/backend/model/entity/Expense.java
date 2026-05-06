@@ -2,6 +2,7 @@ package com.expensia.backend.model.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -9,11 +10,14 @@ import java.time.LocalDateTime;
 @Table(name = "expenses")
 @Data
 public class Expense {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long expenseId;
 
+    @Column(nullable = false)
     private Long userId;
+
     private Long categoryId;
 
     @Column(nullable = false)
@@ -25,6 +29,20 @@ public class Expense {
     private String description;
     private String merchant;
     private String paymentMethod;
-    private Boolean isRecurring = false;
-    private Boolean createdByVoice = false;
+
+    private Boolean isRecurring;
+    private Boolean createdByVoice;
+
+    @PrePersist
+    public void prePersist() {
+        if (date == null) {
+            date = LocalDateTime.now();
+        }
+        if (isRecurring == null) {
+            isRecurring = false;
+        }
+        if (createdByVoice == null) {
+            createdByVoice = false;
+        }
+    }
 }
