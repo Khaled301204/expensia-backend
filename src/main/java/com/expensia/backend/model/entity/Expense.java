@@ -19,6 +19,7 @@ public class Expense {
     private Long userId;
 
     private Long categoryId;
+    private String categoryName;
 
     @Column(nullable = false)
     private BigDecimal amount;

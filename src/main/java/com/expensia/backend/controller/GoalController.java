@@ -1,4 +1,44 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.request.AddSavingsRequest;
+import com.expensia.backend.dto.request.GoalRequest;
+import com.expensia.backend.dto.response.GoalResponse;
+import com.expensia.backend.service.goal.GoalService;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/goals")
 public class GoalController {
+
+    private final GoalService goalService;
+
+    public GoalController(GoalService goalService) {
+        this.goalService = goalService;
+    }
+
+    @PostMapping
+    public GoalResponse createGoal(@Valid @RequestBody GoalRequest request) {
+        return goalService.createGoal(request);
+    }
+
+    @GetMapping
+    public List<GoalResponse> getMyGoals() {
+        return goalService.getMyGoals();
+    }
+
+    @PostMapping("/{id}/savings")
+    public GoalResponse addSavings(
+            @PathVariable Long id,
+            @Valid @RequestBody AddSavingsRequest request
+    ) {
+        return goalService.addSavings(id, request.getAmount());
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteGoal(@PathVariable Long id) {
+        goalService.deleteGoal(id);
+    }
 }
