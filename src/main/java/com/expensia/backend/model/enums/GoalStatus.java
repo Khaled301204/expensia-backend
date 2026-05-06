@@ -1,4 +1,7 @@
 package com.expensia.backend.model.enums;
 
-public class GoalStatus {
+public enum GoalStatus {
+    ACTIVE,
+    COMPLETED,
+    CANCELLED
 }

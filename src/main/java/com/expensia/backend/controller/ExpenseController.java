@@ -1,7 +1,7 @@
 package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.ExpenseRequest;
-import com.expensia.backend.model.entity.Expense;
+import com.expensia.backend.dto.response.ExpenseResponse;
 import com.expensia.backend.service.expense.ExpenseService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +19,12 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public Expense createExpense(@Valid @RequestBody ExpenseRequest request) {
+    public ExpenseResponse createExpense(@Valid @RequestBody ExpenseRequest request) {
         return expenseService.createExpense(request);
     }
 
     @GetMapping
-    public List<Expense> getMyExpenses() {
+    public List<ExpenseResponse> getMyExpenses() {
         return expenseService.getMyExpenses();
     }
 

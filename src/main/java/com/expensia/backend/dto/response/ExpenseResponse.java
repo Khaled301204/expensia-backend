@@ -15,17 +15,9 @@ public class ExpenseResponse {
     private Boolean isRecurring;
     private Boolean createdByVoice;
 
-    public ExpenseResponse(
-            Long expenseId,
-            BigDecimal amount,
-            Long categoryId,
-            LocalDateTime date,
-            String description,
-            String merchant,
-            String paymentMethod,
-            Boolean isRecurring,
-            Boolean createdByVoice
-    ) {
+    public ExpenseResponse(Long expenseId, BigDecimal amount, Long categoryId,
+                           LocalDateTime date, String description, String merchant,
+                           String paymentMethod, Boolean isRecurring, Boolean createdByVoice) {
         this.expenseId = expenseId;
         this.amount = amount;
         this.categoryId = categoryId;
@@ -37,39 +29,13 @@ public class ExpenseResponse {
         this.createdByVoice = createdByVoice;
     }
 
-    public Long getExpenseId() {
-        return expenseId;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public Long getCategoryId() {
-        return categoryId;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getMerchant() {
-        return merchant;
-    }
-
-    public String getPaymentMethod() {
-        return paymentMethod;
-    }
-
-    public Boolean getIsRecurring() {
-        return isRecurring;
-    }
-
-    public Boolean getCreatedByVoice() {
-        return createdByVoice;
-    }
+    public Long getExpenseId() { return expenseId; }
+    public BigDecimal getAmount() { return amount; }
+    public Long getCategoryId() { return categoryId; }
+    public LocalDateTime getDate() { return date; }
+    public String getDescription() { return description; }
+    public String getMerchant() { return merchant; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public Boolean getIsRecurring() { return isRecurring; }
+    public Boolean getCreatedByVoice() { return createdByVoice; }
 }

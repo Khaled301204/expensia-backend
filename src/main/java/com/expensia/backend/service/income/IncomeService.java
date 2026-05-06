@@ -1,30 +1,68 @@
 package com.expensia.backend.service.income;
 
+import com.expensia.backend.dto.request.IncomeRequest;
+import com.expensia.backend.dto.response.IncomeResponse;
 import com.expensia.backend.model.entity.Income;
+import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.IncomeRepository;
-import lombok.RequiredArgsConstructor;
+import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class IncomeService {
 
     private final IncomeRepository incomeRepository;
 
-    public Income createIncome(Long userId, Income income) {
-        income.setUserId(userId);
-        return incomeRepository.save(income);
+    public IncomeService(IncomeRepository incomeRepository) {
+        this.incomeRepository = incomeRepository;
     }
 
-    public List<Income> getIncomes(Long userId) {
-        return incomeRepository.findByUserIdOrderByDateDesc(userId);
+    public IncomeResponse createIncome(IncomeRequest request) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        Income income = new Income();
+        income.setUserId(currentUser.getUserId());
+        income.setAmount(request.getAmount());
+        income.setDate(request.getDate());
+        income.setSource(request.getSource());
+        income.setFrequency(request.getFrequency());
+        income.setIsRecurring(request.getIsRecurring());
+
+        Income savedIncome = incomeRepository.save(income);
+        return mapToResponse(savedIncome);
     }
 
-    public BigDecimal getTotalIncome(Long userId, LocalDateTime start, LocalDateTime end) {
-        BigDecimal total = incomeRepository.sumByUserIdAndDateBetween(userId, start, end);
-        return total != null ? total : BigDecimal.ZERO;
+    public List<IncomeResponse> getMyIncomes() {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        return incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public void deleteIncome(Long incomeId) {
+        incomeRepository.deleteById(incomeId);
+    }
+
+    private IncomeResponse mapToResponse(Income income) {
+        return new IncomeResponse(
+                income.getIncomeId(),
+                income.getAmount(),
+                income.getDate(),
+                income.getSource(),
+                income.getFrequency(),
+                income.getIsRecurring()
+        );
     }
 }
