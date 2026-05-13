@@ -1,6 +1,7 @@
 package com.expensia.backend.service.ai;
 
 import com.expensia.backend.dto.response.AICategorizationResponse;
+import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.NLPParseResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -83,6 +84,25 @@ public class AIServiceClient {
 
             System.out.println("NLP service unavailable: " + e.getMessage());
 
+            return null;
+        }
+    }
+
+    public AIRecommendationResponse getRecommendations(Map<String, Object> request) {
+        try {
+            String url = "http://localhost:8000/api/recommend";
+
+            ResponseEntity<AIRecommendationResponse> response =
+                    restTemplate.postForEntity(
+                            url,
+                            request,
+                            AIRecommendationResponse.class
+                    );
+
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.out.println("Recommendation service unavailable: " + e.getMessage());
             return null;
         }
     }

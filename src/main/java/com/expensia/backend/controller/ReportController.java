@@ -1,5 +1,6 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.ReportResponse;
 import com.expensia.backend.service.report.ReportService;
@@ -23,6 +24,14 @@ public class ReportController {
         return ApiResponse.success(
                 "Monthly report generated successfully",
                 reportService.generateMonthlyReport()
+        );
+    }
+    @GetMapping("/recommendations")
+    public ApiResponse<AIRecommendationResponse> getRecommendations() {
+
+        return ApiResponse.success(
+                "Recommendations generated successfully",
+                reportService.getRecommendations()
         );
     }
 }
