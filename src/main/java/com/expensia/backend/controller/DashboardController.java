@@ -1,5 +1,6 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.DashboardResponse;
 import com.expensia.backend.service.analysis.DashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +16,10 @@ public class DashboardController {
     }
 
     @GetMapping("/api/dashboard/summary")
-    public DashboardResponse getSummary() {
-        return dashboardService.getSummary();
+    public ApiResponse<DashboardResponse> getSummary() {
+        return ApiResponse.success(
+                "Dashboard summary retrieved successfully",
+                dashboardService.getSummary()
+        );
     }
 }

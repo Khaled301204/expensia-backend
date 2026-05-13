@@ -1,5 +1,6 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.UserResponse;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.util.SecurityUtil;
@@ -10,8 +11,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     @GetMapping("/api/user/me")
-    public UserResponse getCurrentUser() {
+    public ApiResponse<UserResponse> getCurrentUser() {
         User user = SecurityUtil.getCurrentUser();
+
+        if (user == null) {
+            throw new RuntimeException("Unauthorized");
+        }
 
         UserResponse response = new UserResponse();
         response.setUserId(user.getUserId());
@@ -19,6 +24,9 @@ public class UserController {
         response.setName(user.getName());
         response.setPhone(user.getPhone());
 
-        return response;
+        return ApiResponse.success(
+                "User retrieved successfully",
+                response
+        );
     }
 }

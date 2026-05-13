@@ -2,6 +2,7 @@ package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.AddSavingsRequest;
 import com.expensia.backend.dto.request.GoalRequest;
+import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.GoalResponse;
 import com.expensia.backend.service.goal.GoalService;
 import jakarta.validation.Valid;
@@ -20,25 +21,35 @@ public class GoalController {
     }
 
     @PostMapping
-    public GoalResponse createGoal(@Valid @RequestBody GoalRequest request) {
-        return goalService.createGoal(request);
+    public ApiResponse<GoalResponse> createGoal(@Valid @RequestBody GoalRequest request) {
+        return ApiResponse.success(
+                "Goal created successfully",
+                goalService.createGoal(request)
+        );
     }
 
     @GetMapping
-    public List<GoalResponse> getMyGoals() {
-        return goalService.getMyGoals();
+    public ApiResponse<List<GoalResponse>> getMyGoals() {
+        return ApiResponse.success(
+                "Goals retrieved successfully",
+                goalService.getMyGoals()
+        );
     }
 
     @PostMapping("/{id}/savings")
-    public GoalResponse addSavings(
+    public ApiResponse<GoalResponse> addSavings(
             @PathVariable Long id,
             @Valid @RequestBody AddSavingsRequest request
     ) {
-        return goalService.addSavings(id, request.getAmount());
+        return ApiResponse.success(
+                "Savings added successfully",
+                goalService.addSavings(id, request.getAmount())
+        );
     }
 
     @DeleteMapping("/{id}")
-    public void deleteGoal(@PathVariable Long id) {
+    public ApiResponse<Object> deleteGoal(@PathVariable Long id) {
         goalService.deleteGoal(id);
+        return ApiResponse.success("Goal deleted successfully", null);
     }
 }

@@ -1,6 +1,7 @@
 package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.BudgetRequest;
+import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.BudgetResponse;
 import com.expensia.backend.service.budget.BudgetService;
 import jakarta.validation.Valid;
@@ -19,17 +20,24 @@ public class BudgetController {
     }
 
     @PostMapping
-    public BudgetResponse createBudget(@Valid @RequestBody BudgetRequest request) {
-        return budgetService.createBudget(request);
+    public ApiResponse<BudgetResponse> createBudget(@Valid @RequestBody BudgetRequest request) {
+        return ApiResponse.success(
+                "Budget created successfully",
+                budgetService.createBudget(request)
+        );
     }
 
     @GetMapping
-    public List<BudgetResponse> getMyBudgets() {
-        return budgetService.getMyBudgets();
+    public ApiResponse<List<BudgetResponse>> getMyBudgets() {
+        return ApiResponse.success(
+                "Budgets retrieved successfully",
+                budgetService.getMyBudgets()
+        );
     }
 
     @DeleteMapping("/{id}")
-    public void deleteBudget(@PathVariable Long id) {
+    public ApiResponse<Object> deleteBudget(@PathVariable Long id) {
         budgetService.deleteBudget(id);
+        return ApiResponse.success("Budget deleted successfully", null);
     }
 }
