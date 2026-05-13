@@ -8,4 +8,6 @@ import java.util.List;
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
     List<Budget> findByUserId(Long userId);
+
+    List<Budget> findByUserIdAndCategoryId(Long userId, Long categoryId);
 }

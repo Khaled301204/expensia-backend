@@ -1,44 +1,90 @@
 package com.expensia.backend.service.notification;
 
+import com.expensia.backend.dto.response.NotificationResponse;
 import com.expensia.backend.model.entity.Notification;
+import com.expensia.backend.model.entity.User;
+import com.expensia.backend.model.enums.NotificationType;
 import com.expensia.backend.repository.NotificationRepository;
-import lombok.RequiredArgsConstructor;
+import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    public Notification createNotification(Long userId, String type, String title, String message) {
+    public NotificationService(NotificationRepository notificationRepository) {
+        this.notificationRepository = notificationRepository;
+    }
+
+    public void createNotification(
+            Long userId,
+            String title,
+            String message,
+            NotificationType type
+    ) {
+
         Notification notification = new Notification();
+
         notification.setUserId(userId);
-        notification.setType(type);
         notification.setTitle(title);
         notification.setMessage(message);
+        notification.setType(type);
 
-        return notificationRepository.save(notification);
-    }
-
-    public List<Notification> getUnreadNotifications(Long userId) {
-        return notificationRepository.findByUserIdAndIsReadFalse(userId);
-    }
-
-    public void markAsRead(Long notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow();
-        notification.setIsRead(true);
         notificationRepository.save(notification);
     }
 
-    // Budget Alert Logic
-    public void checkBudgetAlerts(Long userId, Long budgetId) {
-        // TODO: Check if expenses > budget * 0.8
-        // If yes, create budget alert notification
-        createNotification(userId, "BUDGET_ALERT",
-                "Budget Alert",
-                "You've spent 80% of your Food budget");
+    public List<NotificationResponse> getMyNotifications() {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        return notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(currentUser.getUserId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<NotificationResponse> getUnreadNotifications() {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        return notificationRepository
+                .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(currentUser.getUserId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public void markAsRead(Long notificationId) {
+
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+
+        notification.setIsRead(true);
+
+        notificationRepository.save(notification);
+    }
+
+    private NotificationResponse mapToResponse(Notification notification) {
+
+        return new NotificationResponse(
+                notification.getNotificationId(),
+                notification.getTitle(),
+                notification.getMessage(),
+                notification.getType(),
+                notification.getIsRead(),
+                notification.getCreatedAt()
+        );
     }
 }
