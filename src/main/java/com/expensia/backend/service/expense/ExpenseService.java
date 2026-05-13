@@ -3,6 +3,7 @@ package com.expensia.backend.service.expense;
 import com.expensia.backend.dto.request.ExpenseRequest;
 import com.expensia.backend.dto.response.AICategorizationResponse;
 import com.expensia.backend.dto.response.ExpenseResponse;
+import com.expensia.backend.dto.response.NLPParseResponse;
 import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.User;
@@ -15,6 +16,7 @@ import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -124,5 +126,48 @@ public class ExpenseService {
                 expense.getIsRecurring(),
                 expense.getCreatedByVoice()
         );
+    }
+
+    public ExpenseResponse parseAndCreateExpense(String text) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        NLPParseResponse aiResponse = aiServiceClient.parseExpenseText(text);
+
+        if (aiResponse == null || !aiResponse.isSuccess() || aiResponse.getParsed() == null) {
+            throw new RuntimeException("Could not parse expense text");
+        }
+
+        NLPParseResponse.ParsedExpense parsed = aiResponse.getParsed();
+
+        Expense expense = new Expense();
+
+        expense.setUserId(currentUser.getUserId());
+        expense.setAmount(BigDecimal.valueOf(parsed.getAmount()));
+        expense.setMerchant(parsed.getMerchant());
+        expense.setDescription(parsed.getDescription());
+        expense.setCategoryName(parsed.getCategory());
+        expense.setCategoryConfidence(
+                parsed.getConfidence() != null && parsed.getConfidence().get("category") != null
+                        ? parsed.getConfidence().get("category")
+                        : 0.0
+        );
+
+        if (parsed.getDate() != null) {
+            expense.setDate(LocalDate.parse(parsed.getDate()).atStartOfDay());
+        }
+
+        expense.setPaymentMethod("CASH");
+        expense.setIsRecurring(false);
+        expense.setCreatedByVoice(true);
+
+        Expense savedExpense = expenseRepository.save(expense);
+
+        checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
+        return mapToResponse(savedExpense);
     }
 }

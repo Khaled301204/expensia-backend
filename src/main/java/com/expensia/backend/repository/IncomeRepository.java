@@ -13,4 +13,5 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
     @Query("SELECT SUM(i.amount) FROM Income i WHERE i.userId = :userId " +
             "AND i.date >= :start AND i.date < :end")
     BigDecimal sumByUserIdAndDateBetween(Long userId, LocalDateTime start, LocalDateTime end);
+    List<Income> findByUserIdAndDateBetween(Long userId, LocalDateTime start, LocalDateTime end);
 }

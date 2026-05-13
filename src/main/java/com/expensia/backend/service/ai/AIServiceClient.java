@@ -1,6 +1,7 @@
 package com.expensia.backend.service.ai;
 
 import com.expensia.backend.dto.response.AICategorizationResponse;
+import com.expensia.backend.dto.response.NLPParseResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -57,5 +58,32 @@ public class AIServiceClient {
                 return 0.0;
             }
         };
+    }
+
+    public NLPParseResponse parseExpenseText(String text) {
+
+        try {
+
+            String url = "http://localhost:8000/api/parse-and-categorize";
+
+            Map<String, String> request = Map.of(
+                    "text", text
+            );
+
+            ResponseEntity<NLPParseResponse> response =
+                    restTemplate.postForEntity(
+                            url,
+                            request,
+                            NLPParseResponse.class
+                    );
+
+            return response.getBody();
+
+        } catch (Exception e) {
+
+            System.out.println("NLP service unavailable: " + e.getMessage());
+
+            return null;
+        }
     }
 }

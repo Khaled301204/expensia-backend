@@ -1,6 +1,7 @@
 package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.ExpenseRequest;
+import com.expensia.backend.dto.request.ParseExpenseRequest;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.ExpenseResponse;
 import com.expensia.backend.service.expense.ExpenseService;
@@ -32,6 +33,16 @@ public class ExpenseController {
         return ApiResponse.success(
                 "Expenses retrieved successfully",
                 expenseService.getMyExpenses()
+        );
+    }
+
+    @PostMapping("/parse-text")
+    public ApiResponse<ExpenseResponse> parseTextExpense(
+            @Valid @RequestBody ParseExpenseRequest request
+    ) {
+        return ApiResponse.success(
+                "Expense parsed and created successfully",
+                expenseService.parseAndCreateExpense(request.getText())
         );
     }
 
