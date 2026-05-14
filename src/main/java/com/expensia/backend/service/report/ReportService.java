@@ -7,9 +7,11 @@ import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.Income;
 import com.expensia.backend.model.entity.SavingGoal;
 import com.expensia.backend.model.entity.User;
+import com.expensia.backend.model.entity.Wallet;
 import com.expensia.backend.repository.ExpenseRepository;
 import com.expensia.backend.repository.GoalRepository;
 import com.expensia.backend.repository.IncomeRepository;
+import com.expensia.backend.repository.WalletRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
@@ -28,17 +30,20 @@ public class ReportService {
     private final IncomeRepository incomeRepository;
     private final GoalRepository goalRepository;
     private final AIServiceClient aiServiceClient;
+    private final WalletRepository walletRepository;
 
     public ReportService(
             ExpenseRepository expenseRepository,
             IncomeRepository incomeRepository,
             GoalRepository goalRepository,
-            AIServiceClient aiServiceClient
+            AIServiceClient aiServiceClient,
+            WalletRepository walletRepository
     ) {
         this.expenseRepository = expenseRepository;
         this.incomeRepository = incomeRepository;
         this.goalRepository = goalRepository;
         this.aiServiceClient = aiServiceClient;
+        this.walletRepository = walletRepository;
     }
 
     public ReportResponse generateMonthlyReport() {
@@ -187,7 +192,12 @@ public class ReportService {
         request.put("user_id", currentUser.getUserId());
         request.put("monthly_income", totalIncome);
         request.put("monthly_expenses", totalExpenses);
-        request.put("current_savings", BigDecimal.ZERO);
+        BigDecimal currentSavings = walletRepository
+                .findByUserId(currentUser.getUserId())
+                .map(Wallet::getCurrentSavings)
+                .orElse(BigDecimal.ZERO);
+
+        request.put("current_savings", currentSavings);
 
         request.put("risk_preference", "MEDIUM");
 
@@ -300,7 +310,12 @@ public class ReportService {
 
         request.put("monthly_expenses", totalExpenses);
 
-        request.put("current_savings", BigDecimal.ZERO);
+        BigDecimal currentSavings = walletRepository
+                .findByUserId(currentUser.getUserId())
+                .map(Wallet::getCurrentSavings)
+                .orElse(BigDecimal.ZERO);
+
+        request.put("current_savings", currentSavings);
 
         request.put("risk_preference", "MEDIUM");
 
