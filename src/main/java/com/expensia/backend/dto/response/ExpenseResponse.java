@@ -37,7 +37,7 @@ public class ExpenseResponse {
     public BigDecimal getAmount() { return amount; }
     public Long getCategoryId() { return categoryId; }
     public String getCategoryName() { return categoryName; }
-    public double getCategoryConfidence() { return categoryConfidence; }
+    public Double getCategoryConfidence() { return categoryConfidence; }
     public LocalDateTime getDate() { return date; }
     public String getDescription() { return description; }
     public String getMerchant() { return merchant; }

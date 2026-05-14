@@ -47,8 +47,18 @@ public class ExpenseService {
         expense.setCategoryId(request.getCategoryId());
         expense.setDescription(request.getDescription());
         AICategorizationResponse aiResponse = aiServiceClient.categorizeExpense( request.getDescription(), request.getMerchant());
-        expense.setCategoryName(aiResponse.getCategory());
-        expense.setCategoryConfidence(aiResponse.getConfidence());
+        String categoryName = aiResponse.getCategory();
+        Double confidence = aiResponse.getConfidence();
+
+        if (confidence == null || confidence < 0.40) {
+            categoryName = "Other";
+        }
+
+        expense.setCategoryName(categoryName);
+
+        expense.setCategoryConfidence(
+                confidence == null ? 0.0 : confidence
+        );
         expense.setDate(request.getDate());
         expense.setDescription(request.getDescription());
         expense.setMerchant(request.getMerchant());
@@ -118,7 +128,7 @@ public class ExpenseService {
                 expense.getAmount(),
                 expense.getCategoryId(),
                 expense.getCategoryName(),
-                expense.getCategoryConfidence(),
+                expense.getCategoryConfidence() == null ? 0.0 : expense.getCategoryConfidence(),
                 expense.getDate(),
                 expense.getDescription(),
                 expense.getMerchant(),
@@ -149,11 +159,21 @@ public class ExpenseService {
         expense.setAmount(BigDecimal.valueOf(parsed.getAmount()));
         expense.setMerchant(parsed.getMerchant());
         expense.setDescription(parsed.getDescription());
-        expense.setCategoryName(parsed.getCategory());
-        expense.setCategoryConfidence(
-                parsed.getConfidence() != null && parsed.getConfidence().get("category") != null
+        Double confidence =
+                parsed.getConfidence() != null
                         ? parsed.getConfidence().get("category")
-                        : 0.0
+                        : 0.0;
+
+        String categoryName = parsed.getCategory();
+
+        if (confidence == null || confidence < 0.40) {
+            categoryName = "Other";
+        }
+
+        expense.setCategoryName(categoryName);
+
+        expense.setCategoryConfidence(
+                confidence == null ? 0.0 : confidence
         );
 
         if (parsed.getDate() != null) {
