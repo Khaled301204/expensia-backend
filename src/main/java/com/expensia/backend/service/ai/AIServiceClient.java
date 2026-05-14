@@ -1,6 +1,7 @@
 package com.expensia.backend.service.ai;
 
 import com.expensia.backend.dto.response.AICategorizationResponse;
+import com.expensia.backend.dto.response.AIInsightsResponse;
 import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.NLPParseResponse;
 import org.springframework.http.ResponseEntity;
@@ -103,6 +104,25 @@ public class AIServiceClient {
 
         } catch (Exception e) {
             System.out.println("Recommendation service unavailable: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public AIInsightsResponse getCompleteInsights(Map<String, Object> request) {
+        try {
+            String url = "http://localhost:8000/api/insights";
+
+            ResponseEntity<AIInsightsResponse> response =
+                    restTemplate.postForEntity(
+                            url,
+                            request,
+                            AIInsightsResponse.class
+                    );
+
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.out.println("Insights service unavailable: " + e.getMessage());
             return null;
         }
     }

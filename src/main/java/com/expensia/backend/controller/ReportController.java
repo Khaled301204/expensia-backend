@@ -1,5 +1,6 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.response.AIInsightsResponse;
 import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.ReportResponse;
@@ -32,6 +33,15 @@ public class ReportController {
         return ApiResponse.success(
                 "Recommendations generated successfully",
                 reportService.getRecommendations()
+        );
+    }
+
+    @GetMapping("/insights")
+    public ApiResponse<AIInsightsResponse> getInsights() {
+
+        return ApiResponse.success(
+                "Insights generated successfully",
+                reportService.getCompleteInsights()
         );
     }
 }

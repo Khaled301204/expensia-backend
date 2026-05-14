@@ -1,5 +1,6 @@
 package com.expensia.backend.service.report;
 
+import com.expensia.backend.dto.response.AIInsightsResponse;
 import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.ReportResponse;
 import com.expensia.backend.model.entity.Expense;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @Service
 public class ReportService {
@@ -198,6 +200,120 @@ public class ReportService {
 
         if (response == null || !response.isSuccess()) {
             throw new RuntimeException("Could not generate recommendations");
+        }
+
+        return response;
+    }
+
+    public AIInsightsResponse getCompleteInsights() {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        LocalDateTime start =
+                LocalDateTime.now()
+                        .withDayOfMonth(1)
+                        .withHour(0)
+                        .withMinute(0)
+                        .withSecond(0);
+
+        LocalDateTime end = start.plusMonths(1);
+
+        List<Expense> expenses =
+                expenseRepository.findByUserIdAndDateBetween(
+                        currentUser.getUserId(),
+                        start,
+                        end
+                );
+
+        List<Income> incomes =
+                incomeRepository.findByUserIdAndDateBetween(
+                        currentUser.getUserId(),
+                        start,
+                        end
+                );
+
+        List<SavingGoal> goals =
+                goalRepository.findByUserId(currentUser.getUserId());
+
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+        BigDecimal totalIncome = BigDecimal.ZERO;
+
+        Map<String, BigDecimal> categoryBreakdown = new HashMap<>();
+
+        List<Map<String, Object>> transactions = new ArrayList<>();
+
+        for (Expense expense : expenses) {
+
+            totalExpenses = totalExpenses.add(expense.getAmount());
+
+            String category =
+                    expense.getCategoryName() != null
+                            ? expense.getCategoryName()
+                            : "Other";
+
+            categoryBreakdown.put(
+                    category,
+                    categoryBreakdown.getOrDefault(category, BigDecimal.ZERO)
+                            .add(expense.getAmount())
+            );
+
+            Map<String, Object> transaction = new HashMap<>();
+
+            transaction.put("date", expense.getDate().toString());
+            transaction.put("category", category);
+            transaction.put("amount", expense.getAmount());
+
+            transactions.add(transaction);
+        }
+
+        for (Income income : incomes) {
+            totalIncome = totalIncome.add(income.getAmount());
+        }
+
+        List<Map<String, Object>> goalData = goals.stream()
+                .map(goal -> {
+
+                    Map<String, Object> map = new HashMap<>();
+
+                    map.put("name", goal.getName());
+                    map.put("target_amount", goal.getTargetAmount());
+                    map.put("current_amount", goal.getCurrentAmount());
+
+                    if (goal.getDeadline() != null) {
+                        map.put("deadline", goal.getDeadline().toString());
+                    }
+
+                    return map;
+                })
+                .toList();
+
+        Map<String, Object> request = new HashMap<>();
+
+        request.put("user_id", currentUser.getUserId());
+
+        request.put("monthly_income", totalIncome);
+
+        request.put("monthly_expenses", totalExpenses);
+
+        request.put("current_savings", BigDecimal.ZERO);
+
+        request.put("risk_preference", "MEDIUM");
+
+        request.put("expense_breakdown", categoryBreakdown);
+
+        request.put("transactions", transactions);
+
+        request.put("goals", goalData);
+
+        AIInsightsResponse response =
+                aiServiceClient.getCompleteInsights(request);
+
+        if (response == null || !response.isSuccess()) {
+            throw new RuntimeException("Could not generate insights");
         }
 
         return response;
