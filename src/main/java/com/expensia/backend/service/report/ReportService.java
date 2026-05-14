@@ -215,12 +215,13 @@ public class ReportService {
 
         LocalDateTime start =
                 LocalDateTime.now()
+                        .minusMonths(6)
                         .withDayOfMonth(1)
                         .withHour(0)
                         .withMinute(0)
                         .withSecond(0);
 
-        LocalDateTime end = start.plusMonths(1);
+        LocalDateTime end = LocalDateTime.now();
 
         List<Expense> expenses =
                 expenseRepository.findByUserIdAndDateBetween(
