@@ -120,6 +120,11 @@ public class ReportService {
             throw new RuntimeException("Unauthorized");
         }
 
+        return getRecommendationsForUser(currentUser);
+    }
+
+    public AIRecommendationResponse getRecommendationsForUser(User user) {
+
         LocalDateTime start =
                 LocalDateTime.now()
                         .withDayOfMonth(1)
@@ -131,20 +136,20 @@ public class ReportService {
 
         List<Expense> expenses =
                 expenseRepository.findByUserIdAndDateBetween(
-                        currentUser.getUserId(),
+                        user.getUserId(),
                         start,
                         end
                 );
 
         List<Income> incomes =
                 incomeRepository.findByUserIdAndDateBetween(
-                        currentUser.getUserId(),
+                        user.getUserId(),
                         start,
                         end
                 );
 
         List<SavingGoal> goals =
-                goalRepository.findByUserId(currentUser.getUserId());
+                goalRepository.findByUserId(user.getUserId());
 
         BigDecimal totalExpenses = BigDecimal.ZERO;
         BigDecimal totalIncome = BigDecimal.ZERO;
@@ -152,13 +157,11 @@ public class ReportService {
         Map<String, BigDecimal> categoryBreakdown = new HashMap<>();
 
         for (Expense expense : expenses) {
-
             totalExpenses = totalExpenses.add(expense.getAmount());
 
-            String category =
-                    expense.getCategoryName() != null
-                            ? expense.getCategoryName()
-                            : "Other";
+            String category = expense.getCategoryName() != null
+                    ? expense.getCategoryName()
+                    : "Other";
 
             categoryBreakdown.put(
                     category,
@@ -174,7 +177,6 @@ public class ReportService {
         List<Map<String, Object>> goalData = goals.stream()
                 .map(goal -> {
                     Map<String, Object> map = new HashMap<>();
-
                     map.put("name", goal.getName());
                     map.put("target_amount", goal.getTargetAmount());
                     map.put("current_amount", goal.getCurrentAmount());
@@ -187,22 +189,19 @@ public class ReportService {
                 })
                 .toList();
 
-        Map<String, Object> request = new HashMap<>();
-
-        request.put("user_id", currentUser.getUserId());
-        request.put("monthly_income", totalIncome);
-        request.put("monthly_expenses", totalExpenses);
         BigDecimal currentSavings = walletRepository
-                .findByUserId(currentUser.getUserId())
+                .findByUserId(user.getUserId())
                 .map(Wallet::getCurrentSavings)
                 .orElse(BigDecimal.ZERO);
 
+        Map<String, Object> request = new HashMap<>();
+
+        request.put("user_id", user.getUserId());
+        request.put("monthly_income", totalIncome);
+        request.put("monthly_expenses", totalExpenses);
         request.put("current_savings", currentSavings);
-
         request.put("risk_preference", "MEDIUM");
-
         request.put("expense_breakdown", categoryBreakdown);
-
         request.put("goals", goalData);
 
         AIRecommendationResponse response =
