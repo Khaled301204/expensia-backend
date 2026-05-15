@@ -1,4 +1,4 @@
-package com.expensia.backend.repository;
-
-public interface CategoryRepository {
-}
+//package com.expensia.backend.repository;
+//
+//public interface CategoryRepository {
+//}

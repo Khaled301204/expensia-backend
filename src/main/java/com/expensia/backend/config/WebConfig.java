@@ -1,4 +1,4 @@
-package com.expensia.backend.config;
-
-public class WebConfig {
-}
+//package com.expensia.backend.config;
+//
+//public class WebConfig {
+//}

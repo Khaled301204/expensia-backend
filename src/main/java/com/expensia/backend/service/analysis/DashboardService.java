@@ -1,6 +1,7 @@
 package com.expensia.backend.service.analysis;
 
 import com.expensia.backend.dto.response.DashboardResponse;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.BudgetRepository;
 import com.expensia.backend.repository.ExpenseRepository;
@@ -30,7 +31,7 @@ public class DashboardService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         LocalDateTime start = LocalDateTime.now().withDayOfMonth(1).toLocalDate().atStartOfDay();

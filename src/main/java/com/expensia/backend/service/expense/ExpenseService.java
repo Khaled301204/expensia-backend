@@ -4,6 +4,8 @@ import com.expensia.backend.dto.request.ExpenseRequest;
 import com.expensia.backend.dto.response.AICategorizationResponse;
 import com.expensia.backend.dto.response.ExpenseResponse;
 import com.expensia.backend.dto.response.NLPParseResponse;
+import com.expensia.backend.exception.AIServiceException;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.User;
@@ -38,7 +40,7 @@ public class ExpenseService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         Expense expense = new Expense();
@@ -75,7 +77,7 @@ public class ExpenseService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId())
@@ -142,13 +144,13 @@ public class ExpenseService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         NLPParseResponse aiResponse = aiServiceClient.parseExpenseText(text);
 
         if (aiResponse == null || !aiResponse.isSuccess() || aiResponse.getParsed() == null) {
-            throw new RuntimeException("Could not parse expense text");
+            throw new AIServiceException("Could not parse expense text");
         }
 
         NLPParseResponse.ParsedExpense parsed = aiResponse.getParsed();

@@ -1,4 +1,4 @@
-package com.expensia.backend.dto.response;
-
-public class ForecastResponse {
-}
+//package com.expensia.backend.dto.response;
+//
+//public class ForecastResponse {
+//}

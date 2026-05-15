@@ -2,6 +2,7 @@ package com.expensia.backend.service.income;
 
 import com.expensia.backend.dto.request.IncomeRequest;
 import com.expensia.backend.dto.response.IncomeResponse;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Income;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.IncomeRepository;
@@ -23,7 +24,7 @@ public class IncomeService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         Income income = new Income();
@@ -42,7 +43,7 @@ public class IncomeService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId())

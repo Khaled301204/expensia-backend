@@ -1,6 +1,8 @@
 package com.expensia.backend.service.notification;
 
 import com.expensia.backend.dto.response.NotificationResponse;
+import com.expensia.backend.exception.ResourceNotFoundException;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Notification;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.model.enums.NotificationType;
@@ -41,7 +43,7 @@ public class NotificationService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return notificationRepository
@@ -56,7 +58,7 @@ public class NotificationService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return notificationRepository
@@ -69,7 +71,7 @@ public class NotificationService {
     public void markAsRead(Long notificationId) {
 
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
 
         notification.setIsRead(true);
 

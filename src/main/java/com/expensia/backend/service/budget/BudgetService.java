@@ -2,6 +2,7 @@ package com.expensia.backend.service.budget;
 
 import com.expensia.backend.dto.request.BudgetRequest;
 import com.expensia.backend.dto.response.BudgetResponse;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.BudgetRepository;
@@ -24,7 +25,7 @@ public class BudgetService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         Budget budget = new Budget();
@@ -45,7 +46,7 @@ public class BudgetService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return budgetRepository.findByUserId(currentUser.getUserId())

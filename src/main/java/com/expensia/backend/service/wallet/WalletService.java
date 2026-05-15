@@ -2,6 +2,7 @@ package com.expensia.backend.service.wallet;
 
 import com.expensia.backend.dto.request.WalletRequest;
 import com.expensia.backend.dto.response.WalletResponse;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.model.entity.Wallet;
 import com.expensia.backend.repository.WalletRepository;
@@ -24,7 +25,7 @@ public class WalletService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         Wallet wallet = walletRepository.findByUserId(
@@ -47,7 +48,7 @@ public class WalletService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         Wallet wallet = walletRepository.findByUserId(

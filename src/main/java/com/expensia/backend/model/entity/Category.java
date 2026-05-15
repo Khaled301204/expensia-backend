@@ -1,4 +1,4 @@
-package com.expensia.backend.model.entity;
-
-public class Category {
-}
+//package com.expensia.backend.model.entity;
+//
+//public class Category {
+//}

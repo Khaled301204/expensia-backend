@@ -3,6 +3,8 @@ package com.expensia.backend.service.report;
 import com.expensia.backend.dto.response.AIInsightsResponse;
 import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.ReportResponse;
+import com.expensia.backend.exception.AIServiceException;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.Income;
 import com.expensia.backend.model.entity.SavingGoal;
@@ -51,7 +53,7 @@ public class ReportService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         LocalDateTime start =
@@ -117,7 +119,7 @@ public class ReportService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return getRecommendationsForUser(currentUser);
@@ -208,7 +210,7 @@ public class ReportService {
                 aiServiceClient.getRecommendations(request);
 
         if (response == null || !response.isSuccess()) {
-            throw new RuntimeException("Could not generate recommendations");
+            throw new AIServiceException("Could not generate recommendations");
         }
 
         return response;
@@ -219,7 +221,7 @@ public class ReportService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         LocalDateTime start =
@@ -328,7 +330,7 @@ public class ReportService {
                 aiServiceClient.getCompleteInsights(request);
 
         if (response == null || !response.isSuccess()) {
-            throw new RuntimeException("Could not generate insights");
+            throw new AIServiceException("Could not generate insights");
         }
 
         return response;

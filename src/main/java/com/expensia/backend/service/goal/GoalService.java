@@ -2,6 +2,8 @@ package com.expensia.backend.service.goal;
 
 import com.expensia.backend.dto.request.GoalRequest;
 import com.expensia.backend.dto.response.GoalResponse;
+import com.expensia.backend.exception.ResourceNotFoundException;
+import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.SavingGoal;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.model.enums.GoalStatus;
@@ -25,7 +27,7 @@ public class GoalService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         SavingGoal goal = new SavingGoal();
@@ -47,7 +49,7 @@ public class GoalService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         return goalRepository.findByUserId(currentUser.getUserId())
@@ -60,14 +62,14 @@ public class GoalService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         SavingGoal goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new RuntimeException("Goal not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Goal not found"));
 
         if (!goal.getUserId().equals(currentUser.getUserId())) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         goal.setCurrentAmount(goal.getCurrentAmount().add(amount));
@@ -85,14 +87,14 @@ public class GoalService {
         User currentUser = SecurityUtil.getCurrentUser();
 
         if (currentUser == null) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         SavingGoal goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new RuntimeException("Goal not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Goal not found"));
 
         if (!goal.getUserId().equals(currentUser.getUserId())) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         goalRepository.delete(goal);
