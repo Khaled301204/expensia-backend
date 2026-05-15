@@ -7,10 +7,12 @@ import com.expensia.backend.dto.response.NLPParseResponse;
 import com.expensia.backend.exception.AIServiceException;
 import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Budget;
+import com.expensia.backend.model.entity.Category;
 import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.model.enums.NotificationType;
 import com.expensia.backend.repository.BudgetRepository;
+import com.expensia.backend.repository.CategoryRepository;
 import com.expensia.backend.repository.ExpenseRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
 import com.expensia.backend.service.notification.NotificationService;
@@ -28,12 +30,14 @@ public class ExpenseService {
     private final AIServiceClient aiServiceClient;
     private final BudgetRepository budgetRepository;
     private final NotificationService notificationService;
+    private final CategoryRepository categoryRepository;
 
-    public ExpenseService( ExpenseRepository expenseRepository, AIServiceClient aiServiceClient, BudgetRepository budgetRepository, NotificationService notificationService ) {
+    public ExpenseService( ExpenseRepository expenseRepository, AIServiceClient aiServiceClient, BudgetRepository budgetRepository, NotificationService notificationService, CategoryRepository categoryRepository) {
         this.expenseRepository = expenseRepository;
         this.aiServiceClient = aiServiceClient;
         this.budgetRepository = budgetRepository;
         this.notificationService = notificationService;
+        this.categoryRepository = categoryRepository;
     }
 
     public ExpenseResponse createExpense(ExpenseRequest request) {
@@ -50,6 +54,13 @@ public class ExpenseService {
         expense.setDescription(request.getDescription());
         AICategorizationResponse aiResponse = aiServiceClient.categorizeExpense( request.getDescription(), request.getMerchant());
         String categoryName = aiResponse.getCategory();
+        Category category = categoryRepository
+                .findByNameIgnoreCase(categoryName)
+                .orElse(null);
+
+        if (category != null) {
+            expense.setCategoryId(category.getCategoryId());
+        }
         Double confidence = aiResponse.getConfidence();
 
         if (confidence == null || confidence < 0.40) {
@@ -127,6 +138,7 @@ public class ExpenseService {
     private ExpenseResponse mapToResponse(Expense expense) {
         return new ExpenseResponse(
                 expense.getExpenseId(),
+                expense.getUserId(),
                 expense.getAmount(),
                 expense.getCategoryId(),
                 expense.getCategoryName(),
@@ -136,7 +148,8 @@ public class ExpenseService {
                 expense.getMerchant(),
                 expense.getPaymentMethod(),
                 expense.getIsRecurring(),
-                expense.getCreatedByVoice()
+                expense.getCreatedByVoice(),
+                expense.getCreatedAt()
         );
     }
 
@@ -173,6 +186,13 @@ public class ExpenseService {
         }
 
         expense.setCategoryName(categoryName);
+        Category category = categoryRepository
+                .findByNameIgnoreCase(categoryName)
+                .orElse(null);
+
+        if (category != null) {
+            expense.setCategoryId(category.getCategoryId());
+        }
 
         expense.setCategoryConfidence(
                 confidence == null ? 0.0 : confidence

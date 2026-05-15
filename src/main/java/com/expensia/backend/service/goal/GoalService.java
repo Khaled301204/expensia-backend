@@ -103,11 +103,13 @@ public class GoalService {
     private GoalResponse mapToResponse(SavingGoal goal) {
         return new GoalResponse(
                 goal.getGoalId(),
+                goal.getUserId(),
                 goal.getName(),
                 goal.getTargetAmount(),
                 goal.getCurrentAmount(),
                 goal.getDeadline(),
-                goal.getStatus()
+                goal.getStatus(),
+                goal.getCreatedAt()
         );
     }
 }

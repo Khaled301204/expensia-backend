@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class ExpenseResponse {
 
     private Long expenseId;
+    private Long userId;
     private BigDecimal amount;
     private Long categoryId;
     private String categoryName;
@@ -16,11 +17,13 @@ public class ExpenseResponse {
     private String paymentMethod;
     private Boolean isRecurring;
     private Boolean createdByVoice;
+    private LocalDateTime createdAt;
 
-    public ExpenseResponse(Long expenseId, BigDecimal amount, Long categoryId,String categoryName,Double categoryConfidence,
+    public ExpenseResponse(Long expenseId, Long userId, BigDecimal amount, Long categoryId,String categoryName,Double categoryConfidence,
                            LocalDateTime date, String description, String merchant,
-                           String paymentMethod, Boolean isRecurring, Boolean createdByVoice) {
+                           String paymentMethod, Boolean isRecurring, Boolean createdByVoice, LocalDateTime createdAt) {
         this.expenseId = expenseId;
+        this.userId = userId;
         this.amount = amount;
         this.categoryId = categoryId;
         this.categoryName = categoryName;
@@ -31,9 +34,11 @@ public class ExpenseResponse {
         this.paymentMethod = paymentMethod;
         this.isRecurring = isRecurring;
         this.createdByVoice = createdByVoice;
+        this.createdAt = createdAt;
     }
 
     public Long getExpenseId() { return expenseId; }
+    public Long getUserId() { return userId; }
     public BigDecimal getAmount() { return amount; }
     public Long getCategoryId() { return categoryId; }
     public String getCategoryName() { return categoryName; }
@@ -44,4 +49,5 @@ public class ExpenseResponse {
     public String getPaymentMethod() { return paymentMethod; }
     public Boolean getIsRecurring() { return isRecurring; }
     public Boolean getCreatedByVoice() { return createdByVoice; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -20,6 +20,7 @@ public class BudgetRequest {
 
     @NotNull
     private LocalDate endDate;
+    private Double alertThreshold;
 
     public Long getCategoryId() {
         return categoryId;
@@ -36,4 +37,5 @@ public class BudgetRequest {
     public LocalDate getEndDate() {
         return endDate;
     }
+    public Double getAlertThreshold() { return alertThreshold; }
 }

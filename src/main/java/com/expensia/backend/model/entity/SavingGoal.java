@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "saving_goals")
@@ -35,6 +36,8 @@ public class SavingGoal {
     @Column(nullable = false)
     private GoalStatus status;
 
+    private LocalDateTime createdAt;
+
     @PrePersist
     public void prePersist() {
         if (currentAmount == null) {
@@ -42,6 +45,9 @@ public class SavingGoal {
         }
         if (status == null) {
             status = GoalStatus.ACTIVE;
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
         }
     }
 }

@@ -18,6 +18,9 @@ public class Expense {
     @Column(nullable = false)
     private Long userId;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     private Long categoryId;
     private String categoryName;
     private Double categoryConfidence;
@@ -39,6 +42,9 @@ public class Expense {
     public void prePersist() {
         if (date == null) {
             date = LocalDateTime.now();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
         }
         if (isRecurring == null) {
             isRecurring = false;

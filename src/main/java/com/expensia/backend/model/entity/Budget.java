@@ -29,4 +29,13 @@ public class Budget {
 
     @Column(nullable = false)
     private LocalDate endDate;
+
+    private Double alertThreshold;
+
+    @PrePersist
+    public void prePersist() {
+        if (alertThreshold == null) {
+            alertThreshold = 0.80;
+        }
+    }
 }
