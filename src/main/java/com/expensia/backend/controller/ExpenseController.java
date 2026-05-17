@@ -2,6 +2,7 @@ package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.ExpenseRequest;
 import com.expensia.backend.dto.request.ParseExpenseRequest;
+import com.expensia.backend.dto.request.UpdateExpenseRequest;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.ExpenseResponse;
 import com.expensia.backend.service.expense.ExpenseService;
@@ -33,6 +34,25 @@ public class ExpenseController {
         return ApiResponse.success(
                 "Expenses retrieved successfully",
                 expenseService.getMyExpenses()
+        );
+    }
+
+    @GetMapping("/{expenseId}")
+    public ApiResponse<ExpenseResponse> getExpenseById(@PathVariable Long expenseId) {
+        return ApiResponse.success(
+                "Expense retrieved successfully",
+                expenseService.getExpenseById(expenseId)
+        );
+    }
+
+    @PutMapping("/{expenseId}")
+    public ApiResponse<ExpenseResponse> updateExpense(
+            @PathVariable Long expenseId,
+            @RequestBody UpdateExpenseRequest request
+    ) {
+        return ApiResponse.success(
+                "Expense updated successfully",
+                expenseService.updateExpense(expenseId, request)
         );
     }
 

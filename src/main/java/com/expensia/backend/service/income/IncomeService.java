@@ -59,6 +59,7 @@ public class IncomeService {
     private IncomeResponse mapToResponse(Income income) {
         return new IncomeResponse(
                 income.getIncomeId(),
+                income.getUserId(),
                 income.getAmount(),
                 income.getDate(),
                 income.getSource(),

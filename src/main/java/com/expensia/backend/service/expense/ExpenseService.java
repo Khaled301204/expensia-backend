@@ -1,10 +1,12 @@
 package com.expensia.backend.service.expense;
 
 import com.expensia.backend.dto.request.ExpenseRequest;
+import com.expensia.backend.dto.request.UpdateExpenseRequest;
 import com.expensia.backend.dto.response.AICategorizationResponse;
 import com.expensia.backend.dto.response.ExpenseResponse;
 import com.expensia.backend.dto.response.NLPParseResponse;
 import com.expensia.backend.exception.AIServiceException;
+import com.expensia.backend.exception.ResourceNotFoundException;
 import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.Category;
@@ -209,6 +211,100 @@ public class ExpenseService {
         Expense savedExpense = expenseRepository.save(expense);
 
         checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
+        return mapToResponse(savedExpense);
+    }
+
+    public ExpenseResponse getExpenseById(Long expenseId) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+
+        if (!expense.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        return mapToResponse(expense);
+    }
+
+    public ExpenseResponse updateExpense(Long expenseId, UpdateExpenseRequest request) {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+
+        if (!expense.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        boolean recategorize = false;
+
+        if (request.getAmount() != null) {
+            expense.setAmount(request.getAmount());
+        }
+
+        if (request.getDate() != null) {
+            expense.setDate(request.getDate());
+        }
+
+        if (request.getDescription() != null) {
+            expense.setDescription(request.getDescription());
+            recategorize = true;
+        }
+
+        if (request.getMerchant() != null) {
+            expense.setMerchant(request.getMerchant());
+            recategorize = true;
+        }
+
+        if (request.getPaymentMethod() != null) {
+            expense.setPaymentMethod(request.getPaymentMethod());
+        }
+
+        if (request.getIsRecurring() != null) {
+            expense.setIsRecurring(request.getIsRecurring());
+        }
+
+        if (recategorize) {
+
+            AICategorizationResponse aiResponse =
+                    aiServiceClient.categorizeExpense(
+                            expense.getDescription(),
+                            expense.getMerchant()
+                    );
+
+            String categoryName = aiResponse.getCategory();
+            Double confidence = aiResponse.getConfidence();
+
+            if (confidence == null || confidence < 0.40) {
+                categoryName = "Other";
+            }
+
+            expense.setCategoryName(categoryName);
+            expense.setCategoryConfidence(
+                    confidence == null ? 0.0 : confidence
+            );
+
+            Category category = categoryRepository
+                    .findByNameIgnoreCase(categoryName)
+                    .orElse(null);
+
+            if (category != null) {
+                expense.setCategoryId(category.getCategoryId());
+            }
+        }
+
+        Expense savedExpense = expenseRepository.save(expense);
 
         return mapToResponse(savedExpense);
     }
