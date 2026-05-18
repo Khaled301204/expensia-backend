@@ -12,6 +12,7 @@ import com.expensia.backend.service.wallet.WalletService;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -93,6 +94,8 @@ public class IncomeService {
             throw new UnauthorizedException("Unauthorized");
         }
 
+        BigDecimal oldAmount = income.getAmount();
+
         if (request.getAmount() != null) {
             income.setAmount(request.getAmount());
         }
@@ -113,11 +116,41 @@ public class IncomeService {
             income.setIsRecurring(request.getIsRecurring());
         }
 
-        return mapToResponse(incomeRepository.save(income));
+        Income savedIncome = incomeRepository.save(income);
+
+        BigDecimal newAmount = savedIncome.getAmount();
+        BigDecimal difference = newAmount.subtract(oldAmount);
+
+        if (difference.compareTo(BigDecimal.ZERO) > 0) {
+            walletService.increaseSavings(currentUser.getUserId(), difference);
+        } else if (difference.compareTo(BigDecimal.ZERO) < 0) {
+            walletService.decreaseSavings(currentUser.getUserId(), difference.abs());
+        }
+
+        return mapToResponse(savedIncome);
     }
 
     public void deleteIncome(Long incomeId) {
-        incomeRepository.deleteById(incomeId);
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Income income = incomeRepository.findById(incomeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Income not found"));
+
+        if (!income.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        walletService.decreaseSavings(
+                currentUser.getUserId(),
+                income.getAmount()
+        );
+
+        incomeRepository.delete(income);
     }
 
     private IncomeResponse mapToResponse(Income income) {

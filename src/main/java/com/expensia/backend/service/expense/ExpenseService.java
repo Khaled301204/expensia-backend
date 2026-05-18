@@ -143,7 +143,25 @@ public class ExpenseService {
     }
 
     public void deleteExpense(Long expenseId) {
-        expenseRepository.deleteById(expenseId);
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
+
+        if (!expense.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        walletService.increaseSavings(
+                currentUser.getUserId(),
+                expense.getAmount()
+        );
+
+        expenseRepository.delete(expense);
     }
 
     private ExpenseResponse mapToResponse(Expense expense) {
@@ -262,6 +280,7 @@ public class ExpenseService {
         }
 
         boolean recategorize = false;
+        BigDecimal oldAmount = expense.getAmount();
 
         if (request.getAmount() != null) {
             expense.setAmount(request.getAmount());
@@ -319,6 +338,15 @@ public class ExpenseService {
         }
 
         Expense savedExpense = expenseRepository.save(expense);
+
+        BigDecimal newAmount = savedExpense.getAmount();
+        BigDecimal difference = newAmount.subtract(oldAmount);
+
+        if (difference.compareTo(BigDecimal.ZERO) > 0) {
+            walletService.decreaseSavings(currentUser.getUserId(), difference);
+        } else if (difference.compareTo(BigDecimal.ZERO) < 0) {
+            walletService.increaseSavings(currentUser.getUserId(), difference.abs());
+        }
 
         return mapToResponse(savedExpense);
     }

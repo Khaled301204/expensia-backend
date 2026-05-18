@@ -82,6 +82,7 @@ public class NotificationService {
 
         return new NotificationResponse(
                 notification.getNotificationId(),
+                notification.getUserId(),
                 notification.getTitle(),
                 notification.getMessage(),
                 notification.getType(),

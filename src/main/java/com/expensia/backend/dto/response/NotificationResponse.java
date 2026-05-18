@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public class NotificationResponse {
 
     private Long notificationId;
+    private Long userId;
     private String title;
     private String message;
     private NotificationType type;
@@ -15,6 +16,7 @@ public class NotificationResponse {
 
     public NotificationResponse(
             Long notificationId,
+            Long userId,
             String title,
             String message,
             NotificationType type,
@@ -22,6 +24,7 @@ public class NotificationResponse {
             LocalDateTime createdAt
     ) {
         this.notificationId = notificationId;
+        this.userId = userId;
         this.title = title;
         this.message = message;
         this.type = type;
