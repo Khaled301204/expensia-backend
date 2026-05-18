@@ -18,6 +18,7 @@ import com.expensia.backend.repository.CategoryRepository;
 import com.expensia.backend.repository.ExpenseRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
 import com.expensia.backend.service.notification.NotificationService;
+import com.expensia.backend.service.wallet.WalletService;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
@@ -33,13 +34,15 @@ public class ExpenseService {
     private final BudgetRepository budgetRepository;
     private final NotificationService notificationService;
     private final CategoryRepository categoryRepository;
+    private final WalletService walletService;
 
-    public ExpenseService( ExpenseRepository expenseRepository, AIServiceClient aiServiceClient, BudgetRepository budgetRepository, NotificationService notificationService, CategoryRepository categoryRepository) {
+    public ExpenseService( ExpenseRepository expenseRepository, AIServiceClient aiServiceClient, BudgetRepository budgetRepository, NotificationService notificationService, CategoryRepository categoryRepository, WalletService walletService) {
         this.expenseRepository = expenseRepository;
         this.aiServiceClient = aiServiceClient;
         this.budgetRepository = budgetRepository;
         this.notificationService = notificationService;
         this.categoryRepository = categoryRepository;
+        this.walletService = walletService;
     }
 
     public ExpenseResponse createExpense(ExpenseRequest request) {
@@ -83,6 +86,12 @@ public class ExpenseService {
 
         Expense savedExpense = expenseRepository.save(expense);
         checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
+        walletService.decreaseSavings(
+                currentUser.getUserId(),
+                savedExpense.getAmount()
+        );
+
         return mapToResponse(savedExpense);
     }
 
@@ -211,6 +220,11 @@ public class ExpenseService {
         Expense savedExpense = expenseRepository.save(expense);
 
         checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
+        walletService.decreaseSavings(
+                currentUser.getUserId(),
+                savedExpense.getAmount()
+        );
 
         return mapToResponse(savedExpense);
     }

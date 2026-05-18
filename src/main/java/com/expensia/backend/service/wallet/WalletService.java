@@ -70,7 +70,35 @@ public class WalletService {
         return mapToResponse(savedWallet);
     }
 
+    public void increaseSavings(Long userId, BigDecimal amount) {
 
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    Wallet newWallet = new Wallet();
+                    newWallet.setUserId(userId);
+                    newWallet.setCurrentSavings(BigDecimal.ZERO);
+                    return newWallet;
+                });
+
+        wallet.setCurrentSavings(wallet.getCurrentSavings().add(amount));
+
+        walletRepository.save(wallet);
+    }
+
+    public void decreaseSavings(Long userId, BigDecimal amount) {
+
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    Wallet newWallet = new Wallet();
+                    newWallet.setUserId(userId);
+                    newWallet.setCurrentSavings(BigDecimal.ZERO);
+                    return newWallet;
+                });
+
+        wallet.setCurrentSavings(wallet.getCurrentSavings().subtract(amount));
+
+        walletRepository.save(wallet);
+    }
 
     private WalletResponse mapToResponse(Wallet wallet) {
 

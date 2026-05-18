@@ -8,6 +8,7 @@ import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Income;
 import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.IncomeRepository;
+import com.expensia.backend.service.wallet.WalletService;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +18,11 @@ import java.util.List;
 public class IncomeService {
 
     private final IncomeRepository incomeRepository;
+    private final WalletService walletService;
 
-    public IncomeService(IncomeRepository incomeRepository) {
+    public IncomeService(IncomeRepository incomeRepository, WalletService walletService) {
         this.incomeRepository = incomeRepository;
+        this.walletService = walletService;
     }
 
     public IncomeResponse createIncome(IncomeRequest request) {
@@ -38,6 +41,11 @@ public class IncomeService {
         income.setIsRecurring(request.getIsRecurring());
 
         Income savedIncome = incomeRepository.save(income);
+
+        walletService.increaseSavings(
+                currentUser.getUserId(),
+                savedIncome.getAmount()
+        );
         return mapToResponse(savedIncome);
     }
 
