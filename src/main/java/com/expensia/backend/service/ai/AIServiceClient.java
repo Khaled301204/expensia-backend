@@ -1,6 +1,7 @@
 package com.expensia.backend.service.ai;
 
 import com.expensia.backend.dto.response.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,13 +20,16 @@ public class AIServiceClient {
 
     private final RestTemplate restTemplate;
 
+    @Value("${ai.base-url}")
+    private String aiBaseUrl;
+
     public AIServiceClient() {
         this.restTemplate = new RestTemplate();
     }
 
     public AICategorizationResponse categorizeExpense(String description, String merchant) {
         try {
-            String url = "http://localhost:8000/api/categorize";
+            String url = aiBaseUrl + "/categorize";
 
             Map<String, String> request = Map.of(
                     "description", description == null ? "" : description,
@@ -70,7 +74,7 @@ public class AIServiceClient {
 
         try {
 
-            String url = "http://localhost:8000/api/parse-and-categorize";
+            String url = aiBaseUrl + "/parse-and-categorize";
 
             Map<String, String> request = Map.of(
                     "text", text
@@ -95,7 +99,7 @@ public class AIServiceClient {
 
     public AIRecommendationResponse getRecommendations(Map<String, Object> request) {
         try {
-            String url = "http://localhost:8000/api/recommend";
+            String url = aiBaseUrl + "/recommend";
 
             ResponseEntity<AIRecommendationResponse> response =
                     restTemplate.postForEntity(
@@ -114,7 +118,7 @@ public class AIServiceClient {
 
     public AIInsightsResponse getCompleteInsights(Map<String, Object> request) {
         try {
-            String url = "http://localhost:8000/api/insights";
+            String url = aiBaseUrl + "/insights";
 
             ResponseEntity<AIInsightsResponse> response =
                     restTemplate.postForEntity(
@@ -136,7 +140,7 @@ public class AIServiceClient {
             String language
     ) {
         try {
-            String url = "http://localhost:8000/api/speech-to-expense";
+            String url = aiBaseUrl + "/speech-to-expense";
 
             ByteArrayResource audioResource = new ByteArrayResource(audio.getBytes()) {
                 @Override
