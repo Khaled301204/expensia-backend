@@ -1,12 +1,16 @@
 package com.expensia.backend.service.ai;
 
-import com.expensia.backend.dto.response.AICategorizationResponse;
-import com.expensia.backend.dto.response.AIInsightsResponse;
-import com.expensia.backend.dto.response.AIRecommendationResponse;
-import com.expensia.backend.dto.response.NLPParseResponse;
+import com.expensia.backend.dto.response.*;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -123,6 +127,45 @@ public class AIServiceClient {
 
         } catch (Exception e) {
             System.out.println("Insights service unavailable: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public VoiceExpenseResponse speechToExpense(
+            MultipartFile audio,
+            String language
+    ) {
+        try {
+            String url = "http://localhost:8000/api/speech-to-expense";
+
+            ByteArrayResource audioResource = new ByteArrayResource(audio.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return audio.getOriginalFilename();
+                }
+            };
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("audio", audioResource);
+            body.add("language", language == null ? "auto" : language);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity =
+                    new HttpEntity<>(body, headers);
+
+            ResponseEntity<VoiceExpenseResponse> response =
+                    restTemplate.postForEntity(
+                            url,
+                            requestEntity,
+                            VoiceExpenseResponse.class
+                    );
+
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.out.println("Speech service unavailable: " + e.getMessage());
             return null;
         }
     }
