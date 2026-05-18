@@ -78,6 +78,13 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    public boolean hasUnreadNotification(Long userId, NotificationType type) {
+        return notificationRepository.existsByUserIdAndTypeAndIsReadFalse(
+                userId,
+                type
+        );
+    }
+
     private NotificationResponse mapToResponse(Notification notification) {
 
         return new NotificationResponse(

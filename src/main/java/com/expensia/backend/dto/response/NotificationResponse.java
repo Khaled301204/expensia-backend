@@ -35,6 +35,7 @@ public class NotificationResponse {
     public Long getNotificationId() {
         return notificationId;
     }
+    public Long getUserId() { return userId; }
 
     public String getTitle() {
         return title;

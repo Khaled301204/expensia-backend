@@ -132,12 +132,17 @@ public class ExpenseService {
             }
 
             if (totalSpent.compareTo(budget.getLimitAmount()) > 0) {
-                notificationService.createNotification(
+                if (!notificationService.hasUnreadNotification(
                         userId,
-                        "Budget exceeded",
-                        "You exceeded your budget limit for category ID " + budget.getCategoryId(),
                         NotificationType.BUDGET_EXCEEDED
-                );
+                )) {
+                    notificationService.createNotification(
+                            userId,
+                            "Budget exceeded",
+                            "You exceeded your budget limit for category ID " + budget.getCategoryId(),
+                            NotificationType.BUDGET_EXCEEDED
+                    );
+                }
             }
         }
     }
