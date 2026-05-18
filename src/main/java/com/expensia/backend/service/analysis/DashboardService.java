@@ -3,9 +3,7 @@ package com.expensia.backend.service.analysis;
 import com.expensia.backend.dto.response.DashboardResponse;
 import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.User;
-import com.expensia.backend.repository.BudgetRepository;
-import com.expensia.backend.repository.ExpenseRepository;
-import com.expensia.backend.repository.IncomeRepository;
+import com.expensia.backend.repository.*;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +16,19 @@ public class DashboardService {
     private final IncomeRepository incomeRepository;
     private final ExpenseRepository expenseRepository;
     private final BudgetRepository budgetRepository;
+    private final WalletRepository walletRepository;
+    private final GoalRepository goalRepository;
 
     public DashboardService(IncomeRepository incomeRepository,
                             ExpenseRepository expenseRepository,
-                            BudgetRepository budgetRepository) {
+                            BudgetRepository budgetRepository,
+                            WalletRepository walletRepository,
+                            GoalRepository goalRepository) {
         this.incomeRepository = incomeRepository;
         this.expenseRepository = expenseRepository;
         this.budgetRepository = budgetRepository;
+        this.walletRepository = walletRepository;
+        this.goalRepository = goalRepository;
     }
 
     public DashboardResponse getSummary() {
@@ -59,13 +63,24 @@ public class DashboardService {
 
         BigDecimal currentBalance = totalIncome.subtract(totalExpenses);
 
+        BigDecimal currentSavings = walletRepository
+                .findByUserId(currentUser.getUserId())
+                .map(wallet -> wallet.getCurrentSavings())
+                .orElse(BigDecimal.ZERO);
+
+        int activeGoals = goalRepository
+                .findByUserId(currentUser.getUserId())
+                .size();
+
         int totalBudgets = budgetRepository.findByUserId(currentUser.getUserId()).size();
 
         return new DashboardResponse(
                 totalIncome,
                 totalExpenses,
                 currentBalance,
-                totalBudgets
+                currentSavings,
+                totalBudgets,
+                activeGoals
         );
     }
 }

@@ -7,14 +7,25 @@ public class DashboardResponse {
     private BigDecimal totalIncome;
     private BigDecimal totalExpenses;
     private BigDecimal currentBalance;
-    private int totalBudgets;
+    private BigDecimal currentSavings;
 
-    public DashboardResponse(BigDecimal totalIncome, BigDecimal totalExpenses,
-                             BigDecimal currentBalance, int totalBudgets) {
+    private int totalBudgets;
+    private int activeGoals;
+
+    public DashboardResponse(
+            BigDecimal totalIncome,
+            BigDecimal totalExpenses,
+            BigDecimal currentBalance,
+            BigDecimal currentSavings,
+            int totalBudgets,
+            int activeGoals
+    ) {
         this.totalIncome = totalIncome;
         this.totalExpenses = totalExpenses;
         this.currentBalance = currentBalance;
+        this.currentSavings = currentSavings;
         this.totalBudgets = totalBudgets;
+        this.activeGoals = activeGoals;
     }
 
     public BigDecimal getTotalIncome() {
@@ -29,7 +40,15 @@ public class DashboardResponse {
         return currentBalance;
     }
 
+    public BigDecimal getCurrentSavings() {
+        return currentSavings;
+    }
+
     public int getTotalBudgets() {
         return totalBudgets;
+    }
+
+    public int getActiveGoals() {
+        return activeGoals;
     }
 }

@@ -1,6 +1,7 @@
 package com.expensia.backend.controller;
 
 import com.expensia.backend.dto.request.IncomeRequest;
+import com.expensia.backend.dto.request.UpdateIncomeRequest;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.IncomeResponse;
 import com.expensia.backend.service.income.IncomeService;
@@ -32,6 +33,25 @@ public class IncomeController {
         return ApiResponse.success(
                 "Incomes retrieved successfully",
                 incomeService.getMyIncomes()
+        );
+    }
+
+    @GetMapping("/{incomeId}")
+    public ApiResponse<IncomeResponse> getIncomeById(@PathVariable Long incomeId) {
+        return ApiResponse.success(
+                "Income retrieved successfully",
+                incomeService.getIncomeById(incomeId)
+        );
+    }
+
+    @PutMapping("/{incomeId}")
+    public ApiResponse<IncomeResponse> updateIncome(
+            @PathVariable Long incomeId,
+            @RequestBody UpdateIncomeRequest request
+    ) {
+        return ApiResponse.success(
+                "Income updated successfully",
+                incomeService.updateIncome(incomeId, request)
         );
     }
 

@@ -1,7 +1,9 @@
 package com.expensia.backend.service.income;
 
 import com.expensia.backend.dto.request.IncomeRequest;
+import com.expensia.backend.dto.request.UpdateIncomeRequest;
 import com.expensia.backend.dto.response.IncomeResponse;
+import com.expensia.backend.exception.ResourceNotFoundException;
 import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Income;
 import com.expensia.backend.model.entity.User;
@@ -50,6 +52,60 @@ public class IncomeService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public IncomeResponse getIncomeById(Long incomeId) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Income income = incomeRepository.findById(incomeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Income not found"));
+
+        if (!income.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        return mapToResponse(income);
+    }
+
+    public IncomeResponse updateIncome(Long incomeId, UpdateIncomeRequest request) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Income income = incomeRepository.findById(incomeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Income not found"));
+
+        if (!income.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        if (request.getAmount() != null) {
+            income.setAmount(request.getAmount());
+        }
+
+        if (request.getDate() != null) {
+            income.setDate(request.getDate());
+        }
+
+        if (request.getSource() != null) {
+            income.setSource(request.getSource());
+        }
+
+        if (request.getFrequency() != null) {
+            income.setFrequency(request.getFrequency());
+        }
+
+        if (request.getIsRecurring() != null) {
+            income.setIsRecurring(request.getIsRecurring());
+        }
+
+        return mapToResponse(incomeRepository.save(income));
     }
 
     public void deleteIncome(Long incomeId) {
