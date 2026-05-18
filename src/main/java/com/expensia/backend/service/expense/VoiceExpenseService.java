@@ -1,6 +1,8 @@
 package com.expensia.backend.service.expense;
 
+import com.expensia.backend.dto.request.ConfirmVoiceExpenseRequest;
 import com.expensia.backend.dto.response.ExpenseResponse;
+import com.expensia.backend.dto.response.VoiceExpensePreviewResponse;
 import com.expensia.backend.dto.response.VoiceExpenseResponse;
 import com.expensia.backend.exception.AIServiceException;
 import com.expensia.backend.exception.UnauthorizedException;
@@ -93,6 +95,107 @@ public class VoiceExpenseService {
         }
 
         expense.setPaymentMethod("CASH");
+        expense.setIsRecurring(false);
+        expense.setCreatedByVoice(true);
+
+        Expense savedExpense = expenseRepository.save(expense);
+
+        walletService.decreaseSavings(
+                currentUser.getUserId(),
+                savedExpense.getAmount()
+        );
+
+        return new ExpenseResponse(
+                savedExpense.getExpenseId(),
+                savedExpense.getUserId(),
+                savedExpense.getAmount(),
+                savedExpense.getCategoryId(),
+                savedExpense.getCategoryName(),
+                savedExpense.getCategoryConfidence(),
+                savedExpense.getDate(),
+                savedExpense.getDescription(),
+                savedExpense.getMerchant(),
+                savedExpense.getPaymentMethod(),
+                savedExpense.getIsRecurring(),
+                savedExpense.getCreatedByVoice(),
+                savedExpense.getCreatedAt()
+        );
+    }
+
+    public VoiceExpensePreviewResponse previewFromVoice(
+            MultipartFile audio,
+            String language
+    ) {
+        VoiceExpenseResponse aiResponse =
+                aiServiceClient.speechToExpense(audio, language);
+
+        if (aiResponse == null || !aiResponse.isSuccess()) {
+            throw new AIServiceException("Could not process voice expense");
+        }
+
+        String categoryName = aiResponse.getCategory();
+        Double confidence = aiResponse.getConfidence();
+
+        if (confidence == null || confidence < 0.40) {
+            categoryName = "Other";
+        }
+
+        Category category = categoryRepository
+                .findByNameIgnoreCase(categoryName)
+                .orElse(null);
+
+        Long categoryId = category != null
+                ? category.getCategoryId()
+                : null;
+
+        return new VoiceExpensePreviewResponse(
+                aiResponse.getAmount(),
+                aiResponse.getMerchant(),
+                aiResponse.getDescription(),
+                aiResponse.getDate(),
+                categoryId,
+                categoryName,
+                confidence == null ? 0.0 : confidence,
+                aiResponse.getSpeechMetadata()
+        );
+    }
+
+    public ExpenseResponse confirmVoiceExpense(
+            ConfirmVoiceExpenseRequest request
+    ) {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Expense expense = new Expense();
+
+        expense.setUserId(currentUser.getUserId());
+
+        expense.setAmount(request.getAmount());
+
+        expense.setCategoryId(request.getCategoryId());
+        expense.setCategoryName(request.getCategoryName());
+
+        expense.setCategoryConfidence(
+                request.getCategoryConfidence() == null
+                        ? 0.0
+                        : request.getCategoryConfidence()
+        );
+
+        expense.setDate(request.getDate());
+
+        expense.setDescription(request.getDescription());
+        expense.setMerchant(request.getMerchant());
+
+        expense.setPaymentMethod(
+                request.getPaymentMethod() == null
+                        ? "CASH"
+                        : request.getPaymentMethod()
+        );
+
         expense.setIsRecurring(false);
         expense.setCreatedByVoice(true);
 

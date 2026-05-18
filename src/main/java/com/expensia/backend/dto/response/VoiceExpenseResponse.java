@@ -1,5 +1,7 @@
 package com.expensia.backend.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public class VoiceExpenseResponse {
@@ -11,6 +13,7 @@ public class VoiceExpenseResponse {
     private String date;
     private String category;
     private Double confidence;
+    @JsonProperty("speech_metadata")
     private Map<String, Object> speechMetadata;
 
     public boolean isSuccess() {
