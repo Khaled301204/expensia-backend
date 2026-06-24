@@ -16,7 +16,14 @@ import com.expensia.backend.repository.IncomeRepository;
 import com.expensia.backend.repository.WalletRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
 import com.expensia.backend.util.SecurityUtil;
+import com.lowagie.text.PageSize;
 import org.springframework.stereotype.Service;
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+
+import java.io.ByteArrayOutputStream;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -459,5 +466,218 @@ public class ReportService {
         }
 
         return escaped;
+    }
+
+    public byte[] exportPdf() {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            Document document = new Document(PageSize.A4.rotate());
+            PdfWriter.getInstance(document, outputStream);
+
+            document.open();
+
+            document.add(new Paragraph("EXPENSIA FINANCIAL REPORT"));
+            document.add(new Paragraph("Generated At: " + LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("USER INFORMATION"));
+            document.add(new Paragraph("Name: " + currentUser.getName()));
+            document.add(new Paragraph("Email: " + currentUser.getEmail()));
+            document.add(new Paragraph(
+                    "Risk Preference: " +
+                            (currentUser.getRiskPreference() == null
+                                    ? "MEDIUM"
+                                    : currentUser.getRiskPreference().name())
+            ));
+            document.add(new Paragraph(" "));
+
+            List<Expense> expenses =
+                    expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+
+            List<Income> incomes =
+                    incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+
+            List<SavingGoal> goals =
+                    goalRepository.findByUserId(currentUser.getUserId());
+
+            BigDecimal currentSavings = walletRepository
+                    .findByUserId(currentUser.getUserId())
+                    .map(Wallet::getCurrentSavings)
+                    .orElse(BigDecimal.ZERO);
+
+            BigDecimal totalExpense = BigDecimal.ZERO;
+            BigDecimal totalIncome = BigDecimal.ZERO;
+
+            Map<String, BigDecimal> categoryBreakdown = new HashMap<>();
+
+            for (Expense e : expenses) {
+                totalExpense = totalExpense.add(e.getAmount());
+
+                String category = e.getCategoryName() == null
+                        ? "Other"
+                        : e.getCategoryName();
+
+                categoryBreakdown.put(
+                        category,
+                        categoryBreakdown.getOrDefault(category, BigDecimal.ZERO)
+                                .add(e.getAmount())
+                );
+            }
+
+            for (Income i : incomes) {
+                totalIncome = totalIncome.add(i.getAmount());
+            }
+
+            document.add(new Paragraph("FINANCIAL SUMMARY"));
+            document.add(new Paragraph("Total Income: " + totalIncome));
+            document.add(new Paragraph("Total Expenses: " + totalExpense));
+            document.add(new Paragraph("Balance: " + totalIncome.subtract(totalExpense)));
+            document.add(new Paragraph("Current Savings: " + currentSavings));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("CATEGORY BREAKDOWN"));
+
+            PdfPTable categoryTable = new PdfPTable(2);
+            categoryTable.setWidthPercentage(60);
+
+            categoryTable.addCell("Category");
+            categoryTable.addCell("Amount");
+
+            for (Map.Entry<String, BigDecimal> entry : categoryBreakdown.entrySet()) {
+                categoryTable.addCell(entry.getKey());
+                categoryTable.addCell(entry.getValue().toString());
+            }
+
+            document.add(categoryTable);
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("EXPENSES"));
+
+            PdfPTable expenseTable = new PdfPTable(5);
+            expenseTable.setWidthPercentage(100);
+
+            expenseTable.addCell("Date");
+            expenseTable.addCell("Category");
+            expenseTable.addCell("Merchant");
+            expenseTable.addCell("Payment");
+            expenseTable.addCell("Amount");
+
+            for (Expense e : expenses) {
+                expenseTable.addCell(
+                        e.getDate() == null
+                                ? ""
+                                : e.getDate().toLocalDate().toString()
+                );
+
+                expenseTable.addCell(
+                        e.getCategoryName() == null
+                                ? "Other"
+                                : e.getCategoryName()
+                );
+
+                expenseTable.addCell(
+                        e.getMerchant() == null
+                                ? ""
+                                : e.getMerchant()
+                );
+
+                expenseTable.addCell(
+                        e.getPaymentMethod() == null
+                                ? ""
+                                : e.getPaymentMethod()
+                );
+
+                expenseTable.addCell(e.getAmount().toString());
+            }
+
+            document.add(expenseTable);
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("INCOME"));
+
+            PdfPTable incomeTable = new PdfPTable(5);
+            incomeTable.setWidthPercentage(100);
+
+            incomeTable.addCell("Date");
+            incomeTable.addCell("Source");
+            incomeTable.addCell("Frequency");
+            incomeTable.addCell("Recurring");
+            incomeTable.addCell("Amount");
+
+            for (Income i : incomes) {
+                incomeTable.addCell(
+                        i.getDate() == null
+                                ? ""
+                                : i.getDate().toLocalDate().toString()
+                );
+
+                incomeTable.addCell(
+                        i.getSource() == null
+                                ? ""
+                                : i.getSource()
+                );
+
+                incomeTable.addCell(
+                        i.getFrequency() == null
+                                ? ""
+                                : i.getFrequency()
+                );
+
+                incomeTable.addCell(
+                        i.getIsRecurring() == null
+                                ? ""
+                                : i.getIsRecurring().toString()
+                );
+
+                incomeTable.addCell(i.getAmount().toString());
+            }
+
+            document.add(incomeTable);
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("SAVING GOALS"));
+
+            PdfPTable goalTable = new PdfPTable(4);
+            goalTable.setWidthPercentage(100);
+
+            goalTable.addCell("Goal");
+            goalTable.addCell("Target");
+            goalTable.addCell("Current");
+            goalTable.addCell("Deadline");
+
+            for (SavingGoal g : goals) {
+                goalTable.addCell(
+                        g.getName() == null
+                                ? ""
+                                : g.getName()
+                );
+
+                goalTable.addCell(g.getTargetAmount().toString());
+                goalTable.addCell(g.getCurrentAmount().toString());
+
+                goalTable.addCell(
+                        g.getDeadline() == null
+                                ? ""
+                                : g.getDeadline().toString()
+                );
+            }
+
+            document.add(goalTable);
+
+            document.close();
+
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Could not generate PDF report");
+        }
     }
 }
