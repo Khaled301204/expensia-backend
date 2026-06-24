@@ -202,7 +202,7 @@ public class ReportService {
         request.put("monthly_income", totalIncome);
         request.put("monthly_expenses", totalExpenses);
         request.put("current_savings", currentSavings);
-        request.put("risk_preference", "MEDIUM");
+        request.put("risk_preference", user.getRiskPreference() == null ? "MEDIUM" : user.getRiskPreference().name());
         request.put("expense_breakdown", categoryBreakdown);
         request.put("goals", goalData);
 
@@ -318,8 +318,7 @@ public class ReportService {
 
         request.put("current_savings", currentSavings);
 
-        request.put("risk_preference", "MEDIUM");
-
+        request.put("risk_preference", currentUser.getRiskPreference() == null ? "MEDIUM" : currentUser.getRiskPreference().name());
         request.put("expense_breakdown", categoryBreakdown);
 
         request.put("transactions", transactions);

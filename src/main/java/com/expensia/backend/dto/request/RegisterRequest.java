@@ -1,5 +1,6 @@
 package com.expensia.backend.dto.request;
 
+import com.expensia.backend.model.enums.RiskPreference;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -20,4 +21,6 @@ public class RegisterRequest {
     private String name;
 
     private String phone;
+
+    private RiskPreference riskPreference;
 }

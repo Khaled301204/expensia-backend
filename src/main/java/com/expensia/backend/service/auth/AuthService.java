@@ -4,6 +4,7 @@ import com.expensia.backend.dto.request.LoginRequest;
 import com.expensia.backend.dto.request.RegisterRequest;
 import com.expensia.backend.dto.response.AuthResponse;
 import com.expensia.backend.model.entity.User;
+import com.expensia.backend.model.enums.RiskPreference;
 import com.expensia.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .phone(request.getPhone())
+                .riskPreference(request.getRiskPreference() == null ? RiskPreference.MEDIUM : request.getRiskPreference())
                 .build();
 
         userRepository.save(user);
@@ -36,7 +38,8 @@ public class AuthService {
                 token,
                 user.getUserId(),
                 user.getEmail(),
-                user.getName()
+                user.getName(),
+                user.getRiskPreference()
         );
     }
 
@@ -53,7 +56,8 @@ public class AuthService {
                 token,
                 user.getUserId(),
                 user.getEmail(),
-                user.getName()
+                user.getName(),
+                user.getRiskPreference()
         );
     }
 }
