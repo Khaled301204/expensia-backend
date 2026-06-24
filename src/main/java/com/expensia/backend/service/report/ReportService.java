@@ -334,4 +334,130 @@ public class ReportService {
 
         return response;
     }
+
+    public String exportCsv() {
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        List<Expense> expenses =
+                expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+
+        List<Income> incomes =
+                incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+
+        List<SavingGoal> goals =
+                goalRepository.findByUserId(currentUser.getUserId());
+
+        BigDecimal currentSavings = walletRepository
+                .findByUserId(currentUser.getUserId())
+                .map(Wallet::getCurrentSavings)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+        BigDecimal totalIncome = BigDecimal.ZERO;
+
+        Map<String, BigDecimal> categoryBreakdown = new HashMap<>();
+
+        for (Expense expense : expenses) {
+            totalExpenses = totalExpenses.add(expense.getAmount());
+
+            String category = expense.getCategoryName() == null
+                    ? "Other"
+                    : expense.getCategoryName();
+
+            categoryBreakdown.put(
+                    category,
+                    categoryBreakdown.getOrDefault(category, BigDecimal.ZERO)
+                            .add(expense.getAmount())
+            );
+        }
+
+        for (Income income : incomes) {
+            totalIncome = totalIncome.add(income.getAmount());
+        }
+
+        BigDecimal balance = totalIncome.subtract(totalExpenses);
+
+        StringBuilder csv = new StringBuilder();
+
+        csv.append("EXPENSIA FINANCIAL REPORT\n");
+        csv.append("Generated At,").append(LocalDateTime.now()).append("\n\n");
+
+        csv.append("USER INFORMATION\n");
+        csv.append("Name,").append(escapeCsv(currentUser.getName())).append("\n");
+        csv.append("Email,").append(escapeCsv(currentUser.getEmail())).append("\n");
+        csv.append("Risk Preference,")
+                .append(currentUser.getRiskPreference() == null ? "MEDIUM" : currentUser.getRiskPreference().name())
+                .append("\n\n");
+
+        csv.append("FINANCIAL SUMMARY\n");
+        csv.append("Total Income,").append(totalIncome).append("\n");
+        csv.append("Total Expenses,").append(totalExpenses).append("\n");
+        csv.append("Balance,").append(balance).append("\n");
+        csv.append("Current Savings,").append(currentSavings).append("\n\n");
+
+        csv.append("CATEGORY BREAKDOWN\n");
+        csv.append("Category,Amount\n");
+        for (Map.Entry<String, BigDecimal> entry : categoryBreakdown.entrySet()) {
+            csv.append(escapeCsv(entry.getKey())).append(",");
+            csv.append(entry.getValue()).append("\n");
+        }
+        csv.append("\n");
+
+        csv.append("EXPENSES\n");
+        csv.append("Expense ID,Date,Category,Description,Merchant,Payment Method,Amount\n");
+        for (Expense expense : expenses) {
+            csv.append(expense.getExpenseId()).append(",");
+            csv.append(expense.getDate()).append(",");
+            csv.append(escapeCsv(expense.getCategoryName())).append(",");
+            csv.append(escapeCsv(expense.getDescription())).append(",");
+            csv.append(escapeCsv(expense.getMerchant())).append(",");
+            csv.append(escapeCsv(expense.getPaymentMethod())).append(",");
+            csv.append(expense.getAmount()).append("\n");
+        }
+        csv.append("\n");
+
+        csv.append("INCOME\n");
+        csv.append("Income ID,Date,Source,Frequency,Recurring,Amount\n");
+        for (Income income : incomes) {
+            csv.append(income.getIncomeId()).append(",");
+            csv.append(income.getDate()).append(",");
+            csv.append(escapeCsv(income.getSource())).append(",");
+            csv.append(escapeCsv(income.getFrequency())).append(",");
+            csv.append(income.getIsRecurring()).append(",");
+            csv.append(income.getAmount()).append("\n");
+        }
+        csv.append("\n");
+
+        csv.append("SAVING GOALS\n");
+        csv.append("Goal ID,Name,Target Amount,Current Amount,Deadline,Status\n");
+        for (SavingGoal goal : goals) {
+            csv.append(goal.getGoalId()).append(",");
+            csv.append(escapeCsv(goal.getName())).append(",");
+            csv.append(goal.getTargetAmount()).append(",");
+            csv.append(goal.getCurrentAmount()).append(",");
+            csv.append(goal.getDeadline()).append(",");
+            csv.append(goal.getStatus()).append("\n");
+        }
+
+        return csv.toString();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String escaped = value.replace("\"", "\"\"");
+
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
+            return "\"" + escaped + "\"";
+        }
+
+        return escaped;
+    }
 }
