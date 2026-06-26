@@ -173,4 +173,19 @@ public class AIServiceClient {
             return null;
         }
     }
+
+    public Object getBenchmarks() {
+        try {
+            String url = aiBaseUrl + "/benchmarks";
+
+            ResponseEntity<Object> response =
+                    restTemplate.getForEntity(url, Object.class);
+
+            return response.getBody();
+
+        } catch (Exception e) {
+            System.out.println("Benchmarks service unavailable: " + e.getMessage());
+            return null;
+        }
+    }
 }

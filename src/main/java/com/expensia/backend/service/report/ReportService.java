@@ -680,4 +680,24 @@ public class ReportService {
             throw new RuntimeException("Could not generate PDF report");
         }
     }
+
+    public Object getForecast() {
+        AIInsightsResponse insights = getCompleteInsights();
+
+        if (insights == null || !insights.isSuccess()) {
+            throw new AIServiceException("Could not generate forecast");
+        }
+
+        return insights.getForecast();
+    }
+
+    public Object getBenchmarks() {
+        Object response = aiServiceClient.getBenchmarks();
+
+        if (response == null) {
+            throw new AIServiceException("Could not retrieve benchmarks");
+        }
+
+        return response;
+    }
 }

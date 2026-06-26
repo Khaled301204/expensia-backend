@@ -67,4 +67,20 @@ public class ReportController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
+
+    @GetMapping("/forecast")
+    public ApiResponse<Object> getForecast() {
+        return ApiResponse.success(
+                "Forecast generated successfully",
+                reportService.getForecast()
+        );
+    }
+
+    @GetMapping("/benchmarks")
+    public ApiResponse<Object> getBenchmarks() {
+        return ApiResponse.success(
+                "Benchmarks retrieved successfully",
+                reportService.getBenchmarks()
+        );
+    }
 }
