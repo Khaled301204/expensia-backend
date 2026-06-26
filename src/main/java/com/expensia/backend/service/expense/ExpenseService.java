@@ -8,16 +8,13 @@ import com.expensia.backend.dto.response.NLPParseResponse;
 import com.expensia.backend.exception.AIServiceException;
 import com.expensia.backend.exception.ResourceNotFoundException;
 import com.expensia.backend.exception.UnauthorizedException;
-import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.Category;
 import com.expensia.backend.model.entity.Expense;
 import com.expensia.backend.model.entity.User;
-import com.expensia.backend.model.enums.NotificationType;
-import com.expensia.backend.repository.BudgetRepository;
 import com.expensia.backend.repository.CategoryRepository;
 import com.expensia.backend.repository.ExpenseRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
-import com.expensia.backend.service.notification.NotificationService;
+import com.expensia.backend.service.budget.BudgetAlertService;
 import com.expensia.backend.service.wallet.WalletService;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
@@ -31,16 +28,20 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final AIServiceClient aiServiceClient;
-    private final BudgetRepository budgetRepository;
-    private final NotificationService notificationService;
+    private final BudgetAlertService budgetAlertService;
     private final CategoryRepository categoryRepository;
     private final WalletService walletService;
 
-    public ExpenseService( ExpenseRepository expenseRepository, AIServiceClient aiServiceClient, BudgetRepository budgetRepository, NotificationService notificationService, CategoryRepository categoryRepository, WalletService walletService) {
+    public ExpenseService(
+            ExpenseRepository expenseRepository,
+            AIServiceClient aiServiceClient,
+            CategoryRepository categoryRepository,
+            WalletService walletService,
+            BudgetAlertService budgetAlertService
+    ) {
         this.expenseRepository = expenseRepository;
         this.aiServiceClient = aiServiceClient;
-        this.budgetRepository = budgetRepository;
-        this.notificationService = notificationService;
+        this.budgetAlertService = budgetAlertService;
         this.categoryRepository = categoryRepository;
         this.walletService = walletService;
     }
@@ -55,17 +56,20 @@ public class ExpenseService {
         Expense expense = new Expense();
         expense.setUserId(currentUser.getUserId());
         expense.setAmount(request.getAmount());
-        expense.setCategoryId(request.getCategoryId());
         expense.setDescription(request.getDescription());
-        AICategorizationResponse aiResponse = aiServiceClient.categorizeExpense( request.getDescription(), request.getMerchant());
-        String categoryName = aiResponse.getCategory();
-        Category category = categoryRepository
-                .findByNameIgnoreCase(categoryName)
-                .orElse(null);
+        expense.setMerchant(request.getMerchant());
+        expense.setPaymentMethod(request.getPaymentMethod());
+        expense.setIsRecurring(request.getIsRecurring());
+        expense.setCreatedByVoice(false);
+        expense.setDate(request.getDate());
 
-        if (category != null) {
-            expense.setCategoryId(category.getCategoryId());
-        }
+        AICategorizationResponse aiResponse =
+                aiServiceClient.categorizeExpense(
+                        request.getDescription(),
+                        request.getMerchant()
+                );
+
+        String categoryName = aiResponse.getCategory();
         Double confidence = aiResponse.getConfidence();
 
         if (confidence == null || confidence < 0.40) {
@@ -73,19 +77,19 @@ public class ExpenseService {
         }
 
         expense.setCategoryName(categoryName);
+        expense.setCategoryConfidence(confidence == null ? 0.0 : confidence);
 
-        expense.setCategoryConfidence(
-                confidence == null ? 0.0 : confidence
-        );
-        expense.setDate(request.getDate());
-        expense.setDescription(request.getDescription());
-        expense.setMerchant(request.getMerchant());
-        expense.setPaymentMethod(request.getPaymentMethod());
-        expense.setIsRecurring(request.getIsRecurring());
-        expense.setCreatedByVoice(false);
+        Category category = categoryRepository
+                .findByNameIgnoreCase(categoryName)
+                .orElse(null);
+
+        if (category != null) {
+            expense.setCategoryId(category.getCategoryId());
+        }
 
         Expense savedExpense = expenseRepository.save(expense);
-        checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
+        budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
 
         walletService.decreaseSavings(
                 currentUser.getUserId(),
@@ -106,45 +110,6 @@ public class ExpenseService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
-    }
-
-    private void checkBudgetAlert(Long userId, Expense expense) {
-
-        if (expense.getCategoryId() == null) {
-            return;
-        }
-
-        List<Budget> budgets = budgetRepository.findByUserIdAndCategoryId(
-                userId,
-                expense.getCategoryId()
-        );
-
-        for (Budget budget : budgets) {
-
-            BigDecimal totalSpent = expenseRepository.sumByUserIdAndDateBetween(
-                    userId,
-                    budget.getStartDate().atStartOfDay(),
-                    budget.getEndDate().plusDays(1).atStartOfDay()
-            );
-
-            if (totalSpent == null) {
-                totalSpent = BigDecimal.ZERO;
-            }
-
-            if (totalSpent.compareTo(budget.getLimitAmount()) > 0) {
-                if (!notificationService.hasUnreadNotification(
-                        userId,
-                        NotificationType.BUDGET_EXCEEDED
-                )) {
-                    notificationService.createNotification(
-                            userId,
-                            "Budget exceeded",
-                            "You exceeded your budget limit for category ID " + budget.getCategoryId(),
-                            NotificationType.BUDGET_EXCEEDED
-                    );
-                }
-            }
-        }
     }
 
     public void deleteExpense(Long expenseId) {
@@ -169,24 +134,6 @@ public class ExpenseService {
         expenseRepository.delete(expense);
     }
 
-    private ExpenseResponse mapToResponse(Expense expense) {
-        return new ExpenseResponse(
-                expense.getExpenseId(),
-                expense.getUserId(),
-                expense.getAmount(),
-                expense.getCategoryId(),
-                expense.getCategoryName(),
-                expense.getCategoryConfidence() == null ? 0.0 : expense.getCategoryConfidence(),
-                expense.getDate(),
-                expense.getDescription(),
-                expense.getMerchant(),
-                expense.getPaymentMethod(),
-                expense.getIsRecurring(),
-                expense.getCreatedByVoice(),
-                expense.getCreatedAt()
-        );
-    }
-
     public ExpenseResponse parseAndCreateExpense(String text) {
         User currentUser = SecurityUtil.getCurrentUser();
 
@@ -208,6 +155,7 @@ public class ExpenseService {
         expense.setAmount(BigDecimal.valueOf(parsed.getAmount()));
         expense.setMerchant(parsed.getMerchant());
         expense.setDescription(parsed.getDescription());
+
         Double confidence =
                 parsed.getConfidence() != null
                         ? parsed.getConfidence().get("category")
@@ -220,6 +168,7 @@ public class ExpenseService {
         }
 
         expense.setCategoryName(categoryName);
+
         Category category = categoryRepository
                 .findByNameIgnoreCase(categoryName)
                 .orElse(null);
@@ -228,9 +177,7 @@ public class ExpenseService {
             expense.setCategoryId(category.getCategoryId());
         }
 
-        expense.setCategoryConfidence(
-                confidence == null ? 0.0 : confidence
-        );
+        expense.setCategoryConfidence(confidence == null ? 0.0 : confidence);
 
         if (parsed.getDate() != null) {
             expense.setDate(LocalDate.parse(parsed.getDate()).atStartOfDay());
@@ -242,7 +189,7 @@ public class ExpenseService {
 
         Expense savedExpense = expenseRepository.save(expense);
 
-        checkBudgetAlert(currentUser.getUserId(), savedExpense);
+        budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
 
         walletService.decreaseSavings(
                 currentUser.getUserId(),
@@ -314,7 +261,6 @@ public class ExpenseService {
         }
 
         if (recategorize) {
-
             AICategorizationResponse aiResponse =
                     aiServiceClient.categorizeExpense(
                             expense.getDescription(),
@@ -329,9 +275,7 @@ public class ExpenseService {
             }
 
             expense.setCategoryName(categoryName);
-            expense.setCategoryConfidence(
-                    confidence == null ? 0.0 : confidence
-            );
+            expense.setCategoryConfidence(confidence == null ? 0.0 : confidence);
 
             Category category = categoryRepository
                     .findByNameIgnoreCase(categoryName)
@@ -353,6 +297,26 @@ public class ExpenseService {
             walletService.increaseSavings(currentUser.getUserId(), difference.abs());
         }
 
+        budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
         return mapToResponse(savedExpense);
+    }
+
+    private ExpenseResponse mapToResponse(Expense expense) {
+        return new ExpenseResponse(
+                expense.getExpenseId(),
+                expense.getUserId(),
+                expense.getAmount(),
+                expense.getCategoryId(),
+                expense.getCategoryName(),
+                expense.getCategoryConfidence() == null ? 0.0 : expense.getCategoryConfidence(),
+                expense.getDate(),
+                expense.getDescription(),
+                expense.getMerchant(),
+                expense.getPaymentMethod(),
+                expense.getIsRecurring(),
+                expense.getCreatedByVoice(),
+                expense.getCreatedAt()
+        );
     }
 }

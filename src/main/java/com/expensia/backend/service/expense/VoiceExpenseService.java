@@ -12,6 +12,7 @@ import com.expensia.backend.model.entity.User;
 import com.expensia.backend.repository.CategoryRepository;
 import com.expensia.backend.repository.ExpenseRepository;
 import com.expensia.backend.service.ai.AIServiceClient;
+import com.expensia.backend.service.budget.BudgetAlertService;
 import com.expensia.backend.service.wallet.WalletService;
 import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class VoiceExpenseService {
@@ -28,17 +30,20 @@ public class VoiceExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
     private final WalletService walletService;
+    private final BudgetAlertService budgetAlertService;
 
     public VoiceExpenseService(
             AIServiceClient aiServiceClient,
             ExpenseRepository expenseRepository,
             CategoryRepository categoryRepository,
-            WalletService walletService
+            WalletService walletService,
+            BudgetAlertService budgetAlertService
     ) {
         this.aiServiceClient = aiServiceClient;
         this.expenseRepository = expenseRepository;
         this.categoryRepository = categoryRepository;
         this.walletService = walletService;
+        this.budgetAlertService = budgetAlertService;
     }
 
     public ExpenseResponse createFromVoice(
@@ -62,24 +67,22 @@ public class VoiceExpenseService {
         Expense expense = new Expense();
 
         expense.setUserId(currentUser.getUserId());
-
-        expense.setAmount(
-                BigDecimal.valueOf(aiResponse.getAmount())
-        );
-
+        expense.setAmount(BigDecimal.valueOf(aiResponse.getAmount()));
         expense.setDescription(aiResponse.getDescription());
         expense.setMerchant(aiResponse.getMerchant());
 
-        expense.setCategoryName(aiResponse.getCategory());
+        String categoryName = aiResponse.getCategory();
+        Double confidence = aiResponse.getConfidence();
 
-        expense.setCategoryConfidence(
-                aiResponse.getConfidence() == null
-                        ? 0.0
-                        : aiResponse.getConfidence()
-        );
+        if (confidence == null || confidence < 0.40) {
+            categoryName = "Other";
+        }
+
+        expense.setCategoryName(categoryName);
+        expense.setCategoryConfidence(confidence == null ? 0.0 : confidence);
 
         Category category = categoryRepository
-                .findByNameIgnoreCase(aiResponse.getCategory())
+                .findByNameIgnoreCase(categoryName)
                 .orElse(null);
 
         if (category != null) {
@@ -87,9 +90,7 @@ public class VoiceExpenseService {
         }
 
         if (aiResponse.getDate() != null) {
-            expense.setDate(
-                    LocalDate.parse(aiResponse.getDate()).atStartOfDay()
-            );
+            expense.setDate(LocalDate.parse(aiResponse.getDate()).atStartOfDay());
         } else {
             expense.setDate(LocalDateTime.now());
         }
@@ -100,26 +101,14 @@ public class VoiceExpenseService {
 
         Expense savedExpense = expenseRepository.save(expense);
 
+        budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
+
         walletService.decreaseSavings(
                 currentUser.getUserId(),
                 savedExpense.getAmount()
         );
 
-        return new ExpenseResponse(
-                savedExpense.getExpenseId(),
-                savedExpense.getUserId(),
-                savedExpense.getAmount(),
-                savedExpense.getCategoryId(),
-                savedExpense.getCategoryName(),
-                savedExpense.getCategoryConfidence(),
-                savedExpense.getDate(),
-                savedExpense.getDescription(),
-                savedExpense.getMerchant(),
-                savedExpense.getPaymentMethod(),
-                savedExpense.getIsRecurring(),
-                savedExpense.getCreatedByVoice(),
-                savedExpense.getCreatedAt()
-        );
+        return mapToResponse(savedExpense);
     }
 
     public VoiceExpensePreviewResponse previewFromVoice(
@@ -173,53 +162,52 @@ public class VoiceExpenseService {
         Expense expense = new Expense();
 
         expense.setUserId(currentUser.getUserId());
-
         expense.setAmount(request.getAmount());
-
         expense.setCategoryId(request.getCategoryId());
         expense.setCategoryName(request.getCategoryName());
-
         expense.setCategoryConfidence(
                 request.getCategoryConfidence() == null
                         ? 0.0
                         : request.getCategoryConfidence()
         );
-
         expense.setDate(request.getDate());
-
         expense.setDescription(request.getDescription());
         expense.setMerchant(request.getMerchant());
-
         expense.setPaymentMethod(
                 request.getPaymentMethod() == null
                         ? "CASH"
                         : request.getPaymentMethod()
         );
-
         expense.setIsRecurring(false);
         expense.setCreatedByVoice(true);
 
         Expense savedExpense = expenseRepository.save(expense);
+
+        budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
 
         walletService.decreaseSavings(
                 currentUser.getUserId(),
                 savedExpense.getAmount()
         );
 
+        return mapToResponse(savedExpense);
+    }
+
+    private ExpenseResponse mapToResponse(Expense expense) {
         return new ExpenseResponse(
-                savedExpense.getExpenseId(),
-                savedExpense.getUserId(),
-                savedExpense.getAmount(),
-                savedExpense.getCategoryId(),
-                savedExpense.getCategoryName(),
-                savedExpense.getCategoryConfidence(),
-                savedExpense.getDate(),
-                savedExpense.getDescription(),
-                savedExpense.getMerchant(),
-                savedExpense.getPaymentMethod(),
-                savedExpense.getIsRecurring(),
-                savedExpense.getCreatedByVoice(),
-                savedExpense.getCreatedAt()
+                expense.getExpenseId(),
+                expense.getUserId(),
+                expense.getAmount(),
+                expense.getCategoryId(),
+                expense.getCategoryName(),
+                expense.getCategoryConfidence(),
+                expense.getDate(),
+                expense.getDescription(),
+                expense.getMerchant(),
+                expense.getPaymentMethod(),
+                expense.getIsRecurring(),
+                expense.getCreatedByVoice(),
+                expense.getCreatedAt()
         );
     }
 }

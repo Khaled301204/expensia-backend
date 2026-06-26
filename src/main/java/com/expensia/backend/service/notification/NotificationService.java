@@ -85,6 +85,18 @@ public class NotificationService {
         );
     }
 
+    public boolean hasUnreadNotificationContaining(
+            Long userId,
+            NotificationType type,
+            String messagePart
+    ) {
+        return notificationRepository.existsByUserIdAndTypeAndMessageContainingAndIsReadFalse(
+                userId,
+                type,
+                messagePart
+        );
+    }
+
     private NotificationResponse mapToResponse(Notification notification) {
 
         return new NotificationResponse(

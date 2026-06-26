@@ -15,4 +15,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             Long userId,
             NotificationType type
     );
+
+    boolean existsByUserIdAndTypeAndMessageContainingAndIsReadFalse(
+            Long userId,
+            NotificationType type,
+            String messagePart
+    );
 }

@@ -33,14 +33,23 @@ public class BudgetService {
             throw new UnauthorizedException("Unauthorized");
         }
 
-        Budget budget = new Budget();
+        Budget budget = budgetRepository
+                .findFirstByUserIdAndCategoryId(
+                        currentUser.getUserId(),
+                        request.getCategoryId()
+                )
+                .orElse(new Budget());
 
         budget.setUserId(currentUser.getUserId());
         budget.setCategoryId(request.getCategoryId());
         budget.setLimitAmount(request.getLimitAmount());
-        budget.setAlertThreshold(request.getAlertThreshold());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
+        budget.setAlertThreshold(
+                request.getAlertThreshold() == null
+                        ? 0.8
+                        : request.getAlertThreshold()
+        );
 
         Budget savedBudget = budgetRepository.save(budget);
 
@@ -64,6 +73,8 @@ public class BudgetService {
     public void deleteBudget(Long budgetId) {
         budgetRepository.deleteById(budgetId);
     }
+
+
 
     private BudgetResponse mapToResponse(Budget budget) {
 
