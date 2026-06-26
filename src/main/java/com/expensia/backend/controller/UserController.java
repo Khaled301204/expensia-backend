@@ -1,32 +1,36 @@
 package com.expensia.backend.controller;
 
+import com.expensia.backend.dto.request.UpdateUserProfileRequest;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.UserResponse;
-import com.expensia.backend.model.entity.User;
-import com.expensia.backend.util.SecurityUtil;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.expensia.backend.service.user.UserService;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/user")
 public class UserController {
 
-    @GetMapping("/api/user/me")
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/me")
     public ApiResponse<UserResponse> getCurrentUser() {
-        User user = SecurityUtil.getCurrentUser();
-
-        if (user == null) {
-            throw new RuntimeException("Unauthorized");
-        }
-
-        UserResponse response = new UserResponse();
-        response.setUserId(user.getUserId());
-        response.setEmail(user.getEmail());
-        response.setName(user.getName());
-        response.setPhone(user.getPhone());
-
         return ApiResponse.success(
                 "User retrieved successfully",
-                response
+                userService.getMyProfile()
+        );
+    }
+
+    @PutMapping("/me")
+    public ApiResponse<UserResponse> updateCurrentUser(
+            @RequestBody UpdateUserProfileRequest request
+    ) {
+        return ApiResponse.success(
+                "Profile updated successfully",
+                userService.updateMyProfile(request)
         );
     }
 }
