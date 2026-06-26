@@ -2,6 +2,7 @@ package com.expensia.backend.service.budget;
 
 import com.expensia.backend.dto.request.BudgetRequest;
 import com.expensia.backend.dto.response.BudgetResponse;
+import com.expensia.backend.exception.ResourceNotFoundException;
 import com.expensia.backend.exception.UnauthorizedException;
 import com.expensia.backend.model.entity.Budget;
 import com.expensia.backend.model.entity.User;
@@ -71,7 +72,22 @@ public class BudgetService {
     }
 
     public void deleteBudget(Long budgetId) {
-        budgetRepository.deleteById(budgetId);
+
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        Budget budget = budgetRepository.findById(budgetId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Budget not found"));
+
+        if (!budget.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        budgetRepository.delete(budget);
     }
 
 
