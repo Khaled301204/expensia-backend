@@ -26,6 +26,7 @@ import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -342,7 +343,7 @@ public class ReportService {
         return response;
     }
 
-    public String exportCsv() {
+    public String exportCsv(LocalDate startDate, LocalDate endDate) {
 
         User currentUser = SecurityUtil.getCurrentUser();
 
@@ -350,14 +351,27 @@ public class ReportService {
             throw new UnauthorizedException("Unauthorized");
         }
 
-        List<Expense> expenses =
-                expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+        List<Expense> expenses;
+        List<Income> incomes;
 
-        List<Income> incomes =
-                incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+        if (startDate != null && endDate != null) {
+            expenses = expenseRepository.findByUserIdAndDateBetween(
+                    currentUser.getUserId(),
+                    startDate.atStartOfDay(),
+                    endDate.plusDays(1).atStartOfDay()
+            );
 
-        List<SavingGoal> goals =
-                goalRepository.findByUserId(currentUser.getUserId());
+            incomes = incomeRepository.findByUserIdAndDateBetween(
+                    currentUser.getUserId(),
+                    startDate.atStartOfDay(),
+                    endDate.plusDays(1).atStartOfDay()
+            );
+        } else {
+            expenses = expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+            incomes = incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+        }
+
+        List<SavingGoal> goals = goalRepository.findByUserId(currentUser.getUserId());
 
         BigDecimal currentSavings = walletRepository
                 .findByUserId(currentUser.getUserId())
@@ -392,7 +406,12 @@ public class ReportService {
         StringBuilder csv = new StringBuilder();
 
         csv.append("EXPENSIA FINANCIAL REPORT\n");
-        csv.append("Generated At,").append(LocalDateTime.now()).append("\n\n");
+        csv.append("Generated At,").append(LocalDateTime.now()).append("\n");
+        csv.append("Report Period,")
+                .append(startDate == null || endDate == null
+                        ? "All Time"
+                        : startDate + " to " + endDate)
+                .append("\n\n");
 
         csv.append("USER INFORMATION\n");
         csv.append("Name,").append(escapeCsv(currentUser.getName())).append("\n");
@@ -468,7 +487,7 @@ public class ReportService {
         return escaped;
     }
 
-    public byte[] exportPdf() {
+    public byte[] exportPdf(LocalDate startDate, LocalDate endDate) {
 
         User currentUser = SecurityUtil.getCurrentUser();
 
@@ -486,6 +505,12 @@ public class ReportService {
 
             document.add(new Paragraph("EXPENSIA FINANCIAL REPORT"));
             document.add(new Paragraph("Generated At: " + LocalDateTime.now()));
+            document.add(new Paragraph(
+                    "Report Period: " +
+                            (startDate == null || endDate == null
+                                    ? "All Time"
+                                    : startDate + " to " + endDate)
+            ));
             document.add(new Paragraph(" "));
 
             document.add(new Paragraph("USER INFORMATION"));
@@ -499,14 +524,27 @@ public class ReportService {
             ));
             document.add(new Paragraph(" "));
 
-            List<Expense> expenses =
-                    expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+            List<Expense> expenses;
+            List<Income> incomes;
 
-            List<Income> incomes =
-                    incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+            if (startDate != null && endDate != null) {
+                expenses = expenseRepository.findByUserIdAndDateBetween(
+                        currentUser.getUserId(),
+                        startDate.atStartOfDay(),
+                        endDate.plusDays(1).atStartOfDay()
+                );
 
-            List<SavingGoal> goals =
-                    goalRepository.findByUserId(currentUser.getUserId());
+                incomes = incomeRepository.findByUserIdAndDateBetween(
+                        currentUser.getUserId(),
+                        startDate.atStartOfDay(),
+                        endDate.plusDays(1).atStartOfDay()
+                );
+            } else {
+                expenses = expenseRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+                incomes = incomeRepository.findByUserIdOrderByDateDesc(currentUser.getUserId());
+            }
+
+            List<SavingGoal> goals = goalRepository.findByUserId(currentUser.getUserId());
 
             BigDecimal currentSavings = walletRepository
                     .findByUserId(currentUser.getUserId())
@@ -521,9 +559,7 @@ public class ReportService {
             for (Expense e : expenses) {
                 totalExpense = totalExpense.add(e.getAmount());
 
-                String category = e.getCategoryName() == null
-                        ? "Other"
-                        : e.getCategoryName();
+                String category = e.getCategoryName() == null ? "Other" : e.getCategoryName();
 
                 categoryBreakdown.put(
                         category,
@@ -547,7 +583,6 @@ public class ReportService {
 
             PdfPTable categoryTable = new PdfPTable(2);
             categoryTable.setWidthPercentage(60);
-
             categoryTable.addCell("Category");
             categoryTable.addCell("Amount");
 
@@ -563,7 +598,6 @@ public class ReportService {
 
             PdfPTable expenseTable = new PdfPTable(5);
             expenseTable.setWidthPercentage(100);
-
             expenseTable.addCell("Date");
             expenseTable.addCell("Category");
             expenseTable.addCell("Merchant");
@@ -571,30 +605,10 @@ public class ReportService {
             expenseTable.addCell("Amount");
 
             for (Expense e : expenses) {
-                expenseTable.addCell(
-                        e.getDate() == null
-                                ? ""
-                                : e.getDate().toLocalDate().toString()
-                );
-
-                expenseTable.addCell(
-                        e.getCategoryName() == null
-                                ? "Other"
-                                : e.getCategoryName()
-                );
-
-                expenseTable.addCell(
-                        e.getMerchant() == null
-                                ? ""
-                                : e.getMerchant()
-                );
-
-                expenseTable.addCell(
-                        e.getPaymentMethod() == null
-                                ? ""
-                                : e.getPaymentMethod()
-                );
-
+                expenseTable.addCell(e.getDate() == null ? "" : e.getDate().toLocalDate().toString());
+                expenseTable.addCell(e.getCategoryName() == null ? "Other" : e.getCategoryName());
+                expenseTable.addCell(e.getMerchant() == null ? "" : e.getMerchant());
+                expenseTable.addCell(e.getPaymentMethod() == null ? "" : e.getPaymentMethod());
                 expenseTable.addCell(e.getAmount().toString());
             }
 
@@ -605,7 +619,6 @@ public class ReportService {
 
             PdfPTable incomeTable = new PdfPTable(5);
             incomeTable.setWidthPercentage(100);
-
             incomeTable.addCell("Date");
             incomeTable.addCell("Source");
             incomeTable.addCell("Frequency");
@@ -613,30 +626,10 @@ public class ReportService {
             incomeTable.addCell("Amount");
 
             for (Income i : incomes) {
-                incomeTable.addCell(
-                        i.getDate() == null
-                                ? ""
-                                : i.getDate().toLocalDate().toString()
-                );
-
-                incomeTable.addCell(
-                        i.getSource() == null
-                                ? ""
-                                : i.getSource()
-                );
-
-                incomeTable.addCell(
-                        i.getFrequency() == null
-                                ? ""
-                                : i.getFrequency()
-                );
-
-                incomeTable.addCell(
-                        i.getIsRecurring() == null
-                                ? ""
-                                : i.getIsRecurring().toString()
-                );
-
+                incomeTable.addCell(i.getDate() == null ? "" : i.getDate().toLocalDate().toString());
+                incomeTable.addCell(i.getSource() == null ? "" : i.getSource());
+                incomeTable.addCell(i.getFrequency() == null ? "" : i.getFrequency());
+                incomeTable.addCell(i.getIsRecurring() == null ? "" : i.getIsRecurring().toString());
                 incomeTable.addCell(i.getAmount().toString());
             }
 
@@ -647,31 +640,19 @@ public class ReportService {
 
             PdfPTable goalTable = new PdfPTable(4);
             goalTable.setWidthPercentage(100);
-
             goalTable.addCell("Goal");
             goalTable.addCell("Target");
             goalTable.addCell("Current");
             goalTable.addCell("Deadline");
 
             for (SavingGoal g : goals) {
-                goalTable.addCell(
-                        g.getName() == null
-                                ? ""
-                                : g.getName()
-                );
-
+                goalTable.addCell(g.getName() == null ? "" : g.getName());
                 goalTable.addCell(g.getTargetAmount().toString());
                 goalTable.addCell(g.getCurrentAmount().toString());
-
-                goalTable.addCell(
-                        g.getDeadline() == null
-                                ? ""
-                                : g.getDeadline().toString()
-                );
+                goalTable.addCell(g.getDeadline() == null ? "" : g.getDeadline().toString());
             }
 
             document.add(goalTable);
-
             document.close();
 
             return outputStream.toByteArray();

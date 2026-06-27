@@ -5,12 +5,16 @@ import com.expensia.backend.dto.response.AIRecommendationResponse;
 import com.expensia.backend.dto.response.ApiResponse;
 import com.expensia.backend.dto.response.ReportResponse;
 import com.expensia.backend.service.report.ReportService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -49,8 +53,11 @@ public class ReportController {
     }
 
     @GetMapping(value = "/export/csv", produces = "text/csv")
-    public ResponseEntity<String> exportCsv() {
-        String csv = reportService.exportCsv();
+    public ResponseEntity<String> exportCsv(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        String csv = reportService.exportCsv(startDate, endDate);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"expense-report.csv\"")
@@ -59,8 +66,11 @@ public class ReportController {
     }
 
     @GetMapping("/export/pdf")
-    public ResponseEntity<byte[]> exportPdf() {
-        byte[] pdf = reportService.exportPdf();
+    public ResponseEntity<byte[]> exportPdf(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        byte[] pdf = reportService.exportPdf(startDate, endDate);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"expense-report.pdf\"")
