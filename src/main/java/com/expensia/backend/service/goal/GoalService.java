@@ -143,6 +143,46 @@ public class GoalService {
         return mapToResponse(savedGoal);
     }
 
+    public GoalResponse withdrawSavings(Long goalId, BigDecimal amount) {
+        User currentUser = SecurityUtil.getCurrentUser();
+
+        if (currentUser == null) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Withdrawal amount must be greater than zero");
+        }
+
+        SavingGoal goal = goalRepository.findById(goalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Goal not found"));
+
+        if (!goal.getUserId().equals(currentUser.getUserId())) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        if (goal.getCurrentAmount().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Cannot withdraw more than the goal current amount");
+        }
+
+        goal.setCurrentAmount(goal.getCurrentAmount().subtract(amount));
+
+        if (goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
+            goal.setStatus(GoalStatus.COMPLETED);
+        } else {
+            goal.setStatus(GoalStatus.ACTIVE);
+        }
+
+        walletService.increaseSavings(
+                currentUser.getUserId(),
+                amount
+        );
+
+        SavingGoal savedGoal = goalRepository.save(goal);
+
+        return mapToResponse(savedGoal);
+    }
+
     public void deleteGoal(Long goalId) {
         User currentUser = SecurityUtil.getCurrentUser();
 

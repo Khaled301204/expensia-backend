@@ -47,6 +47,17 @@ public class GoalController {
         );
     }
 
+    @PostMapping("/{id}/withdraw")
+    public ApiResponse<GoalResponse> withdrawSavings(
+            @PathVariable Long id,
+            @Valid @RequestBody AddSavingsRequest request
+    ) {
+        return ApiResponse.success(
+                "Savings withdrawn successfully",
+                goalService.withdrawSavings(id, request.getAmount())
+        );
+    }
+
     @DeleteMapping("/{id}")
     public ApiResponse<Object> deleteGoal(@PathVariable Long id) {
         goalService.deleteGoal(id);
