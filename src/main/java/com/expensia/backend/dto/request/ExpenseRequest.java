@@ -18,6 +18,8 @@ public class ExpenseRequest {
     private String merchant;
     private String paymentMethod;
     private Boolean isRecurring;
+    private String frequency;
+    private Boolean recurringActive;
 
     public BigDecimal getAmount() {
         return amount;
@@ -46,4 +48,8 @@ public class ExpenseRequest {
     public Boolean getIsRecurring() {
         return isRecurring;
     }
+
+    public String getFrequency() { return frequency; }
+
+    public Boolean getRecurringActive() { return recurringActive; }
 }

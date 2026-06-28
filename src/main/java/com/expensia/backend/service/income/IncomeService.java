@@ -13,6 +13,7 @@ import com.expensia.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -41,12 +42,30 @@ public class IncomeService {
         income.setFrequency(request.getFrequency());
         income.setIsRecurring(request.getIsRecurring());
 
+        if (Boolean.TRUE.equals(request.getIsRecurring())) {
+            income.setRecurringActive(
+                    request.getRecurringActive() == null || request.getRecurringActive()
+            );
+
+            income.setNextOccurrence(
+                    calculateNextOccurrence(
+                            income.getDate() == null ? LocalDateTime.now() : income.getDate(),
+                            income.getFrequency()
+                    )
+            );
+        } else {
+            income.setRecurringActive(false);
+            income.setNextOccurrence(null);
+        }
+
+        validateRecurringIncome(income);
         Income savedIncome = incomeRepository.save(income);
 
         walletService.increaseSavings(
                 currentUser.getUserId(),
                 savedIncome.getAmount()
         );
+
         return mapToResponse(savedIncome);
     }
 
@@ -95,6 +114,8 @@ public class IncomeService {
         }
 
         BigDecimal oldAmount = income.getAmount();
+        boolean recurringScheduleChanged = false;
+        Boolean oldIsRecurring = income.getIsRecurring();
 
         if (request.getAmount() != null) {
             income.setAmount(request.getAmount());
@@ -102,6 +123,7 @@ public class IncomeService {
 
         if (request.getDate() != null) {
             income.setDate(request.getDate());
+            recurringScheduleChanged = true;
         }
 
         if (request.getSource() != null) {
@@ -110,12 +132,42 @@ public class IncomeService {
 
         if (request.getFrequency() != null) {
             income.setFrequency(request.getFrequency());
+            recurringScheduleChanged = true;
         }
 
         if (request.getIsRecurring() != null) {
             income.setIsRecurring(request.getIsRecurring());
+
+            if (!request.getIsRecurring().equals(oldIsRecurring)) {
+                recurringScheduleChanged = true;
+            }
         }
 
+        if (request.getRecurringActive() != null) {
+            income.setRecurringActive(request.getRecurringActive());
+        }
+
+        if (Boolean.TRUE.equals(income.getIsRecurring())) {
+            income.setRecurringActive(
+                    income.getRecurringActive() == null
+                            ? true
+                            : income.getRecurringActive()
+            );
+
+            if (recurringScheduleChanged || income.getNextOccurrence() == null) {
+                income.setNextOccurrence(
+                        calculateNextOccurrence(
+                                income.getDate(),
+                                income.getFrequency()
+                        )
+                );
+            }
+        } else {
+            income.setRecurringActive(false);
+            income.setNextOccurrence(null);
+        }
+
+        validateRecurringIncome(income);
         Income savedIncome = incomeRepository.save(income);
 
         BigDecimal newAmount = savedIncome.getAmount();
@@ -126,6 +178,7 @@ public class IncomeService {
         } else if (difference.compareTo(BigDecimal.ZERO) < 0) {
             walletService.decreaseSavings(currentUser.getUserId(), difference.abs());
         }
+
 
         return mapToResponse(savedIncome);
     }
@@ -153,6 +206,37 @@ public class IncomeService {
         incomeRepository.delete(income);
     }
 
+    private LocalDateTime calculateNextOccurrence(LocalDateTime date, String frequency) {
+        if (date == null || frequency == null) {
+            return null;
+        }
+
+        return switch (frequency.toUpperCase()) {
+            case "DAILY" -> date.plusDays(1);
+            case "WEEKLY" -> date.plusWeeks(1);
+            case "MONTHLY" -> date.plusMonths(1);
+            case "YEARLY" -> date.plusYears(1);
+            default -> null;
+        };
+    }
+
+    private void validateRecurringIncome(Income income) {
+        if (Boolean.TRUE.equals(income.getIsRecurring())) {
+            if (income.getFrequency() == null || income.getFrequency().isBlank()) {
+                throw new IllegalArgumentException("Frequency is required for recurring income");
+            }
+
+            String frequency = income.getFrequency().toUpperCase();
+
+            if (!frequency.equals("DAILY")
+                    && !frequency.equals("WEEKLY")
+                    && !frequency.equals("MONTHLY")
+                    && !frequency.equals("YEARLY")) {
+                throw new IllegalArgumentException("Invalid income frequency");
+            }
+        }
+    }
+
     private IncomeResponse mapToResponse(Income income) {
         return new IncomeResponse(
                 income.getIncomeId(),
@@ -161,7 +245,9 @@ public class IncomeService {
                 income.getDate(),
                 income.getSource(),
                 income.getFrequency(),
-                income.getIsRecurring()
+                income.getIsRecurring(),
+                income.getNextOccurrence(),
+                income.getRecurringActive()
         );
     }
 }

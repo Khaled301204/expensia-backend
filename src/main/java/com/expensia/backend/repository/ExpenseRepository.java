@@ -29,4 +29,8 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    List<Expense> findByIsRecurringTrueAndRecurringActiveTrueAndNextOccurrenceLessThanEqual(
+            LocalDateTime now
+    );
 }

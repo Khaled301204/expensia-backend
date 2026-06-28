@@ -10,10 +10,12 @@ public class UpdateIncomeRequest {
     private String source;
     private String frequency;
     private Boolean isRecurring;
+    private Boolean recurringActive;
 
     public BigDecimal getAmount() { return amount; }
     public LocalDateTime getDate() { return date; }
     public String getSource() { return source; }
     public String getFrequency() { return frequency; }
     public Boolean getIsRecurring() { return isRecurring; }
+    public Boolean getRecurringActive() { return recurringActive; }
 }

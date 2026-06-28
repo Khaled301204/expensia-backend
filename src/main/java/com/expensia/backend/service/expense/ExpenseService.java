@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -60,8 +61,25 @@ public class ExpenseService {
         expense.setMerchant(request.getMerchant());
         expense.setPaymentMethod(request.getPaymentMethod());
         expense.setIsRecurring(request.getIsRecurring());
+        expense.setFrequency(request.getFrequency());
         expense.setCreatedByVoice(false);
         expense.setDate(request.getDate());
+
+        if (Boolean.TRUE.equals(request.getIsRecurring())) {
+            expense.setRecurringActive(
+                    request.getRecurringActive() == null || request.getRecurringActive()
+            );
+
+            expense.setNextOccurrence(
+                    calculateNextOccurrence(
+                            expense.getDate() == null ? LocalDateTime.now() : expense.getDate(),
+                            expense.getFrequency()
+                    )
+            );
+        } else {
+            expense.setRecurringActive(false);
+            expense.setNextOccurrence(null);
+        }
 
         AICategorizationResponse aiResponse =
                 aiServiceClient.categorizeExpense(
@@ -87,6 +105,7 @@ public class ExpenseService {
             expense.setCategoryId(category.getCategoryId());
         }
 
+        validateRecurringExpense(expense);
         Expense savedExpense = expenseRepository.save(expense);
 
         budgetAlertService.checkBudgetAlert(currentUser.getUserId(), savedExpense);
@@ -185,6 +204,9 @@ public class ExpenseService {
 
         expense.setPaymentMethod("CASH");
         expense.setIsRecurring(false);
+        expense.setRecurringActive(false);
+        expense.setFrequency(null);
+        expense.setNextOccurrence(null);
         expense.setCreatedByVoice(true);
 
         Expense savedExpense = expenseRepository.save(expense);
@@ -233,6 +255,8 @@ public class ExpenseService {
 
         boolean recategorize = false;
         BigDecimal oldAmount = expense.getAmount();
+        boolean recurringScheduleChanged = false;
+        Boolean oldIsRecurring = expense.getIsRecurring();
 
         if (request.getAmount() != null) {
             expense.setAmount(request.getAmount());
@@ -240,6 +264,7 @@ public class ExpenseService {
 
         if (request.getDate() != null) {
             expense.setDate(request.getDate());
+            recurringScheduleChanged = true;
         }
 
         if (request.getDescription() != null) {
@@ -258,6 +283,10 @@ public class ExpenseService {
 
         if (request.getIsRecurring() != null) {
             expense.setIsRecurring(request.getIsRecurring());
+
+            if (!request.getIsRecurring().equals(oldIsRecurring)) {
+                recurringScheduleChanged = true;
+            }
         }
 
         if (recategorize) {
@@ -286,6 +315,36 @@ public class ExpenseService {
             }
         }
 
+        if (request.getFrequency() != null) {
+            expense.setFrequency(request.getFrequency());
+            recurringScheduleChanged = true;
+        }
+
+        if (request.getRecurringActive() != null) {
+            expense.setRecurringActive(request.getRecurringActive());
+        }
+
+        if (Boolean.TRUE.equals(expense.getIsRecurring())) {
+            expense.setRecurringActive(
+                    expense.getRecurringActive() == null
+                            ? true
+                            : expense.getRecurringActive()
+            );
+
+            if (recurringScheduleChanged || expense.getNextOccurrence() == null) {
+                expense.setNextOccurrence(
+                        calculateNextOccurrence(
+                                expense.getDate(),
+                                expense.getFrequency()
+                        )
+                );
+            }
+        } else {
+            expense.setRecurringActive(false);
+            expense.setNextOccurrence(null);
+        }
+
+        validateRecurringExpense(expense);
         Expense savedExpense = expenseRepository.save(expense);
 
         BigDecimal newAmount = savedExpense.getAmount();
@@ -302,6 +361,37 @@ public class ExpenseService {
         return mapToResponse(savedExpense);
     }
 
+    private LocalDateTime calculateNextOccurrence(LocalDateTime date, String frequency) {
+        if (date == null || frequency == null) {
+            return null;
+        }
+
+        return switch (frequency.toUpperCase()) {
+            case "DAILY" -> date.plusDays(1);
+            case "WEEKLY" -> date.plusWeeks(1);
+            case "MONTHLY" -> date.plusMonths(1);
+            case "YEARLY" -> date.plusYears(1);
+            default -> null;
+        };
+    }
+
+    private void validateRecurringExpense(Expense expense) {
+        if (Boolean.TRUE.equals(expense.getIsRecurring())) {
+            if (expense.getFrequency() == null || expense.getFrequency().isBlank()) {
+                throw new IllegalArgumentException("Frequency is required for recurring expenses");
+            }
+
+            String frequency = expense.getFrequency().toUpperCase();
+
+            if (!frequency.equals("DAILY")
+                    && !frequency.equals("WEEKLY")
+                    && !frequency.equals("MONTHLY")
+                    && !frequency.equals("YEARLY")) {
+                throw new IllegalArgumentException("Invalid expense frequency");
+            }
+        }
+    }
+
     private ExpenseResponse mapToResponse(Expense expense) {
         return new ExpenseResponse(
                 expense.getExpenseId(),
@@ -315,6 +405,9 @@ public class ExpenseService {
                 expense.getMerchant(),
                 expense.getPaymentMethod(),
                 expense.getIsRecurring(),
+                expense.getFrequency(),
+                expense.getNextOccurrence(),
+                expense.getRecurringActive(),
                 expense.getCreatedByVoice(),
                 expense.getCreatedAt()
         );

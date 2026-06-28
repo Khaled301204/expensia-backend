@@ -97,6 +97,9 @@ public class VoiceExpenseService {
 
         expense.setPaymentMethod("CASH");
         expense.setIsRecurring(false);
+        expense.setFrequency(null);
+        expense.setRecurringActive(false);
+        expense.setNextOccurrence(null);
         expense.setCreatedByVoice(true);
 
         Expense savedExpense = expenseRepository.save(expense);
@@ -179,6 +182,9 @@ public class VoiceExpenseService {
                         : request.getPaymentMethod()
         );
         expense.setIsRecurring(false);
+        expense.setFrequency(null);
+        expense.setRecurringActive(false);
+        expense.setNextOccurrence(null);
         expense.setCreatedByVoice(true);
 
         Expense savedExpense = expenseRepository.save(expense);
@@ -206,6 +212,9 @@ public class VoiceExpenseService {
                 expense.getMerchant(),
                 expense.getPaymentMethod(),
                 expense.getIsRecurring(),
+                expense.getFrequency(),
+                expense.getNextOccurrence(),
+                expense.getRecurringActive(),
                 expense.getCreatedByVoice(),
                 expense.getCreatedAt()
         );

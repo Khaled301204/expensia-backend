@@ -14,4 +14,7 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
             "AND i.date >= :start AND i.date < :end")
     BigDecimal sumByUserIdAndDateBetween(Long userId, LocalDateTime start, LocalDateTime end);
     List<Income> findByUserIdAndDateBetween(Long userId, LocalDateTime start, LocalDateTime end);
+    List<Income> findByIsRecurringTrueAndRecurringActiveTrueAndNextOccurrenceLessThanEqual(
+            LocalDateTime now
+    );
 }

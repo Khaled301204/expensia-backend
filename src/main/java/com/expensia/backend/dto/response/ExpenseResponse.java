@@ -16,12 +16,15 @@ public class ExpenseResponse {
     private String merchant;
     private String paymentMethod;
     private Boolean isRecurring;
+    private String frequency;
+    private LocalDateTime nextOccurrence;
+    private Boolean recurringActive;
     private Boolean createdByVoice;
     private LocalDateTime createdAt;
 
     public ExpenseResponse(Long expenseId, Long userId, BigDecimal amount, Long categoryId,String categoryName,Double categoryConfidence,
                            LocalDateTime date, String description, String merchant,
-                           String paymentMethod, Boolean isRecurring, Boolean createdByVoice, LocalDateTime createdAt) {
+                           String paymentMethod, Boolean isRecurring, String frequency, LocalDateTime nextOccurrence, Boolean recurringActive, Boolean createdByVoice, LocalDateTime createdAt) {
         this.expenseId = expenseId;
         this.userId = userId;
         this.amount = amount;
@@ -33,6 +36,9 @@ public class ExpenseResponse {
         this.merchant = merchant;
         this.paymentMethod = paymentMethod;
         this.isRecurring = isRecurring;
+        this.frequency = frequency;
+        this.nextOccurrence = nextOccurrence;
+        this.recurringActive = recurringActive;
         this.createdByVoice = createdByVoice;
         this.createdAt = createdAt;
     }
@@ -48,6 +54,9 @@ public class ExpenseResponse {
     public String getMerchant() { return merchant; }
     public String getPaymentMethod() { return paymentMethod; }
     public Boolean getIsRecurring() { return isRecurring; }
+    public String getFrequency() { return frequency; }
+    public LocalDateTime getNextOccurrence() { return nextOccurrence; }
+    public Boolean getRecurringActive() { return recurringActive; }
     public Boolean getCreatedByVoice() { return createdByVoice; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
